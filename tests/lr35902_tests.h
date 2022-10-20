@@ -1,17 +1,19 @@
 #pragma once
+
 #include "cpu_tests.h"
+
 
 using namespace xprocessors;
 
 namespace tests
 {
-	class z80_tests : public cpu_tests {
+	class lr35902_tests : public cpu_tests {
 	protected:
 		void out(const uint8_t, const uint8_t);
 		bool runTest(const string&, const uint64_t = 0);
 
 	public:
-		z80_tests();
+		lr35902_tests();
 
 		bool run();
 	};

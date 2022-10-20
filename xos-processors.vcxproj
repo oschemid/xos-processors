@@ -138,11 +138,14 @@
     <ClCompile Include="src\cpu.cpp" />
     <ClCompile Include="src\registry.cpp" />
     <ClCompile Include="src\z80family\i8080.cpp" />
+    <ClCompile Include="src\z80family\lr35902.cpp" />
     <ClCompile Include="src\z80family\z80.cpp" />
     <ClCompile Include="src\z80family\z80opcodes.cpp" />
     <ClCompile Include="src\z80family\z80opcodes_cb.cpp" />
     <ClCompile Include="src\z80family\z80opcodes_ed.cpp" />
+    <ClCompile Include="tests\cpu_tests.cpp" />
     <ClCompile Include="tests\i8080_tests.cpp" />
+    <ClCompile Include="tests\lr35902_tests.cpp" />
     <ClCompile Include="tests\z80_tests.cpp" />
     <ClCompile Include="xos-processors.cpp" />
   </ItemGroup>
@@ -152,9 +155,13 @@
     <ClInclude Include="src\registry.h" />
     <ClInclude Include="src\z80family\cpus.h" />
     <ClInclude Include="src\z80family\i8080.h" />
+    <ClInclude Include="src\z80family\lr35902.h" />
+    <ClInclude Include="src\z80family\opcodes.h" />
     <ClInclude Include="src\z80family\states.h" />
     <ClInclude Include="src\z80family\z80.h" />
+    <ClInclude Include="tests\cpu_tests.h" />
     <ClInclude Include="tests\i8080_tests.h" />
+    <ClInclude Include="tests\lr35902_tests.h" />
     <ClInclude Include="tests\z80_tests.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

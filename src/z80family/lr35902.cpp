@@ -1,4 +1,4 @@
-#include "i8080.h"
+#include "lr35902.h"
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -11,7 +11,7 @@
 
 /*********************************************************************************************************************/
 // REGISTERING
-static xprocessors::CpuRegistryHandler reg("i8080", xprocessors::Intel8080::create);
+static xprocessors::CpuRegistryHandler reg("lr35902", xprocessors::LR35902::create);
 
 
 /*********************************************************************************************************************/
@@ -33,6 +33,23 @@ constexpr auto opcode_tables{ []() constexpr {
 			result[i] = opcodes::INC_R;
 		if ((i & 0b11000111) == 0b00000101)
 			result[i] = opcodes::DEC_R;
+		// Change common opcodes
+		if (i == 0xE2)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xE4)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xEA)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xEC)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xF2)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xF4)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xFA)
+			result[i] = opcodes::UNIMPLEMENTED;
+		if (i == 0xFC)
+			result[i] = opcodes::UNIMPLEMENTED;
 	}
 	return result;
 }()
@@ -41,115 +58,117 @@ constexpr auto opcode_tables{ []() constexpr {
 
 
 namespace xprocessors {
-	Intel8080::Intel8080() :
+	LR35902::LR35902() :
 		Z80FamilyCpu() {
 		reset();
 	}
-	uint8_t Intel8080::get_m() const {
+	uint8_t LR35902::get_m() const {
 		return _handlerRead(_state.hl());
 	}
 
-	uint8_t Intel8080::dcr(const uint8_t value) {
+	uint8_t LR35902::dcr(const uint8_t value) {
 		uint8_t result = value - 1;
 		_state.adjustSZ(result);
-		_state.setParityFlag(parity(result));
-		_state.setFlag(Intel8080Flags::HF, !((result & 0x0f) == 0x0f));
+		parityBit = parity(result);
+		auxCarryBit = !((result & 0x0f) == 0x0f);
 		return result;
 	}
-	uint8_t Intel8080::inr(const uint8_t value) {
+	uint8_t LR35902::inr(const uint8_t value) {
 		uint8_t result = value + 1;
 		_state.adjustSZ(result);
-		_state.setParityFlag(parity(result));
-		_state.setFlag(Intel8080Flags::HF, (result & 0x0f) == 0);
+		parityBit = parity(result);
+		auxCarryBit = (result & 0x0f) == 0;
 		return result;
 	}
 
-	void Intel8080::xra(const uint8_t value) {
+	void LR35902::xra(const uint8_t value) {
 		_state.a() ^= value;
-		_state.resetFlags(Intel8080Flags::CF | Intel8080Flags::HF);
-		_state.setParityFlag(parity(_state.a()));
+		_state.resetFlags(LR35902Flags::CF);
+		auxCarryBit = 0;
+		parityBit = parity(_state.a());
 		_state.adjustSZ(_state.a());
 	}
-	void Intel8080::ora(const uint8_t value) {
+	void LR35902::ora(const uint8_t value) {
 		_state.a() |= value;
-		_state.resetFlags(Intel8080Flags::CF | Intel8080Flags::HF);
-		_state.setParityFlag(parity(_state.a()));
+		_state.resetFlags(LR35902Flags::CF);
+		auxCarryBit = 0;
+		parityBit = parity(_state.a());
 		_state.adjustSZ(_state.a());
 	}
-	void Intel8080::ana(const uint8_t value) {
+	void LR35902::ana(const uint8_t value) {
 		uint8_t result = _state.a() & value;
-		_state.resetFlags(Intel8080Flags::CF);
-		_state.setParityFlag(parity(result));
+		_state.resetFlags(LR35902Flags::CF);
+		parityBit = parity(result);
 		_state.adjustSZ(result);
-		_state.setFlag(Intel8080Flags::HF, ((_state.a() | value) & 0x08) != 0);
+		auxCarryBit = ((_state.a() | value) & 0x08) != 0;
 		_state.a() = result;
 	}
-	void Intel8080::sub(const uint8_t value, const uint8_t flag) {
+	void LR35902::sub(const uint8_t value, const uint8_t flag) {
 		if (value + flag > _state.a())
-			_state.setFlags(Intel8080Flags::CF);
+			_state.setFlags(LR35902Flags::CF);
 		else
-			_state.resetFlags(Intel8080Flags::CF);
-		_state.setFlag(Intel8080Flags::HF, (_state.a() & 0x0f) - (value & 0x0f) - flag >= 0);
+			_state.resetFlags(LR35902Flags::CF);
+		auxCarryBit = (_state.a() & 0x0f) - (value & 0x0f) - flag >= 0;
 		_state.a() -= value + flag;
 		_state.adjustSZ(_state.a());
-		_state.setParityFlag(parity(_state.a()));
+		parityBit = parity(_state.a());
 	}
-	void Intel8080::sbb(const uint8_t value) {
+	void LR35902::sbb(const uint8_t value) {
 		sub(value, _state.carryFlag() ? 1 : 0);
 	}
-	void Intel8080::cmp(const uint8_t value) {
+	void LR35902::cmp(const uint8_t value) {
 		if (value > _state.a())
-			_state.setFlags(Intel8080Flags::CF);
+			_state.setFlags(LR35902Flags::CF);
 		else
-			_state.resetFlags(Intel8080Flags::CF);
-		_state.setFlag(Intel8080Flags::HF, (value & 0xf) > (_state.a() & 0xf) ? 0 : 1);
+			_state.resetFlags(LR35902Flags::CF);
+		auxCarryBit = (value & 0xf) > (_state.a() & 0xf) ? 0 : 1;
 		uint8_t r = _state.a() - value;
 		_state.adjustSZ(r);
-		_state.setParityFlag(parity(r));
+		parityBit = parity(r);
 	}
-	void Intel8080::add(const uint8_t value, const uint8_t flag)
+	void LR35902::add(const uint8_t value, const uint8_t flag)
 	{
 		uint16_t sum = _state.a() + value + flag;
-		_state.setFlag(Intel8080Flags::HF, ((value & 0x0f) + (_state.a() & 0x0f) + flag) > 0x0f);
+		auxCarryBit = ((value & 0x0f) + (_state.a() & 0x0f) + flag) > 0x0f;
 		_state.a() = sum & 0xff;
 		_state.adjustSZ(_state.a());
-		_state.setParityFlag(parity(_state.a()));
+		parityBit = parity(_state.a());
 		if (sum > 0xff)
-			_state.setFlags(Intel8080Flags::CF);
+			_state.setFlags(LR35902Flags::CF);
 		else
-			_state.resetFlags(Intel8080Flags::CF);
+			_state.resetFlags(LR35902Flags::CF);
 	}
-	void Intel8080::adc(const uint8_t value)
+	void LR35902::adc(const uint8_t value)
 	{
 		add(value, _state.carryFlag() ? 1 : 0);
 	}
-	void Intel8080::daa()
+	void LR35902::daa()
 	{
 		uint16_t temp = _state.a();
-		if (((_state.a() & 0xf) > 9) || (_state.halfCarryFlag())) {
+		if (((_state.a() & 0xf) > 9) || (auxCarryBit)) {
 			temp += 6;
-			_state.setFlag(Intel8080Flags::HF, ((_state.a() & 0xf) > 9) ? 1 : 0);
+			auxCarryBit = ((_state.a() & 0xf) > 9) ? 1 : 0;
 		}
 		if ((temp >> 4 > 9) || (_state.carryFlag())) {
 			temp += 0x60;
-			_state.setFlags(Intel8080Flags::CF);
+			_state.setFlags(LR35902Flags::CF);
 		}
 		_state.a() = temp & 0xff;
 		_state.adjustSZ(_state.a());
-		_state.setParityFlag(parity(_state.a()));
+		parityBit = parity(_state.a());
 	}
-	void Intel8080::dad(const uint16_t value)
+	void LR35902::dad(const uint16_t value)
 	{
 		uint32_t res = _state.hl() + value;
 		_state.h() = res >> 8;
 		_state.l() = res & 0xff;
 		if ((res & 0xffff0000) != 0)
-			_state.setFlags(Intel8080Flags::CF);
+			_state.setFlags(LR35902Flags::CF);
 		else
-			_state.resetFlags(Intel8080Flags::CF);
+			_state.resetFlags(LR35902Flags::CF);
 	}
 
-	const uint8_t Intel8080::executeOne() {
+	const uint8_t LR35902::executeOne() {
 		if (interrupt_enabled == 0 && interrupt_request < 8) {
 			interrupt_enabled = 2;
 			push(_state.pc());
@@ -164,23 +183,22 @@ namespace xprocessors {
 		return 4;
 	}
 
-	bool Intel8080::interrupt(const uint8_t inte) {
+	bool LR35902::interrupt(const uint8_t inte) {
 		if (interrupt_enabled == 0)
 			interrupt_request = inte;
 		return (interrupt_enabled == 0) ? true : false;
 	}
 
-	bool Intel8080::reset(const uint16_t address) {
+	bool LR35902::reset(const uint16_t address) {
 		_state.pc() = address;
 		_elapsed_cycles = 0;
 		interrupt_enabled = 2;
 		interrupt_request = 8;
-		Z80FamilyCpu::reset(address);
-		return true;
+		return Z80FamilyCpu::reset(address);
 	}
 
 	/*********************************************************************************************************************/
-	void Intel8080::decode_opcode(const uint8_t opcode) {
+	void LR35902::decode_opcode(const uint8_t opcode) {
 		if (opcode_tables[opcode] != opcodes::UNIMPLEMENTED) {
 			switch (opcode_tables[opcode]) {
 			case opcodes::INC_R:
@@ -215,9 +233,9 @@ namespace xprocessors {
 			break;
 		case 0x07: /* RLC */
 			if (_state.a() >> 7)
-				_state.setFlags(Intel8080Flags::CF);
+				_state.setFlags(LR35902Flags::CF);
 			else
-				_state.resetFlags(Intel8080Flags::CF);
+				_state.resetFlags(LR35902Flags::CF);
 			_state.a() = (_state.carryFlag() ? 1 : 0) | (_state.a() << 1);
 			cycle = 4;
 			break;
@@ -235,9 +253,9 @@ namespace xprocessors {
 			break;
 		case 0x0F: /* RRC */
 			if (_state.a() & 1)
-				_state.setFlags(Intel8080Flags::CF);
+				_state.setFlags(LR35902Flags::CF);
 			else
-				_state.resetFlags(Intel8080Flags::CF);
+				_state.resetFlags(LR35902Flags::CF);
 			_state.a() = (_state.carryFlag() ? 0x80 : 0) | (_state.a() >> 1);
 			cycle = 4;
 			break;
@@ -261,9 +279,9 @@ namespace xprocessors {
 		{
 			uint8_t flag = (_state.carryFlag()) ? 1 : 0;
 			if (_state.a() >> 7)
-				_state.setFlags(Intel8080Flags::CF);
+				_state.setFlags(LR35902Flags::CF);
 			else
-				_state.resetFlags(Intel8080Flags::CF);
+				_state.resetFlags(LR35902Flags::CF);
 
 			_state.a() = (_state.a() << 1) | (flag);
 		}
@@ -285,9 +303,9 @@ namespace xprocessors {
 		{
 			uint8_t flag = (_state.carryFlag()) ? 1 : 0;
 			if (_state.a() & 1)
-				_state.setFlags(Intel8080Flags::CF);
+				_state.setFlags(LR35902Flags::CF);
 			else
-				_state.resetFlags(Intel8080Flags::CF);
+				_state.resetFlags(LR35902Flags::CF);
 			_state.a() = (_state.a() >> 1) | (flag << 7);
 		}
 		cycle = 4;
@@ -347,7 +365,7 @@ namespace xprocessors {
 			cycle = 5;
 			break;
 		case 0x37: /* STC */
-			_state.setFlags(Intel8080Flags::CF);
+			_state.setFlags(LR35902Flags::CF);
 			cycle = 4;
 			break;
 		case 0x39: /* DAD SP */
@@ -364,9 +382,9 @@ namespace xprocessors {
 			break;
 		case 0x3F: /* CMC */
 			if (_state.carryFlag())
-				_state.resetFlags(Intel8080Flags::CF);
+				_state.resetFlags(LR35902Flags::CF);
 			else
-				_state.setFlags(Intel8080Flags::CF);
+				_state.setFlags(LR35902Flags::CF);
 			cycle = 4;
 			break;
 
@@ -639,6 +657,23 @@ namespace xprocessors {
 				cycle = 5;
 			}
 			break;
+		case 0xC2: /* JNZ */
+			tmp16 = readArgument16();
+			if (!_state.zeroFlag())
+				_state.pc() = tmp16;
+			cycle = 10;
+			break;
+			//case 0xC4: /* CNZ */
+			//	tmp16 = readArgument16();
+			//	if (!_state.zeroFlag()) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xC6: /* ADI */
 			add(readArgument8());
 			cycle = 7;
@@ -657,6 +692,23 @@ namespace xprocessors {
 			}
 			break;
 		case 0xC9: /* RET */ _state.pc() = pop(); cycle = 10; break;
+		case 0xCA: /* JZ */
+			tmp16 = readArgument16();
+			if (_state.zeroFlag())
+				_state.pc() = tmp16;
+			cycle = 10;
+			break;
+			//case 0xCC: /* CZ */
+			//	tmp16 = readArgument16();
+			//	if (_state.zeroFlag()) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xCE: /* ACI */
 			adc(readArgument8());
 			cycle = 7;
@@ -672,10 +724,27 @@ namespace xprocessors {
 				cycle = 5;
 			}
 			break;
+			//case 0XD2: /* JNC */
+			//	tmp16 = readArgument16();
+			//	if (!_state.carryFlag())
+			//		_state.pc() = tmp16;
+			//	cycle = 10;
+			//	break;
 		case 0xD3: /* OUT */
 			_handlerOut(readArgument8(), _state.a());
 			cycle = 10;
 			break;
+			//case 0xD4: /* CNC */
+			//	tmp16 = readArgument16();
+			//	if (!_state.carryFlag()) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0XD6: /* SUI */
 			sub(readArgument8());
 			cycle = 7;
@@ -690,10 +759,27 @@ namespace xprocessors {
 				cycle = 5;
 			}
 			break;
+			//case 0xDA: /* JC */
+			//	tmp16 = readArgument16();
+			//	if (_state.carryFlag())
+			//		_state.pc() = tmp16;
+			//	cycle = 10;
+			//	break;
 		case 0XDB: /* IN */
 			_state.a() = _handlerIn(readArgument8());
 			cycle = 10;
 			break;
+			//case 0xDC: /* CC */
+			//	tmp16 = readArgument16();
+			//	if (_state.carryFlag()) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xDE: /* SBI */
 			sbb(readArgument8());
 			cycle = 7;
@@ -701,7 +787,7 @@ namespace xprocessors {
 			//		case 0xDF: /* RST 3 */
 
 		case 0xE0: /* RPO */
-			if (!_state.parityFlag()) {
+			if (!parityBit) {
 				_state.pc() = pop();
 				cycle = 11;
 			}
@@ -709,6 +795,12 @@ namespace xprocessors {
 				cycle = 5;
 			}
 			break;
+			//case 0xE2: /* JPO */
+			//	tmp16 = readArgument16();
+			//	if (!parityBit)
+			//		_state.pc() = tmp16;
+			//	cycle = 10;
+			//	break;
 		case 0xE3: /* XTHL */
 			tmp16 = _handlerRead(_state.sp()) | (_handlerRead(_state.sp() + 1) << 8);
 			_handlerWrite(_state.sp(), _state.l());
@@ -716,13 +808,24 @@ namespace xprocessors {
 			_state.hl() = tmp16;
 			cycle = 18;
 			break;
+			//case 0xE4: /* CPO */
+			//	tmp16 = readArgument16();
+			//	if (!parityBit) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xE6: /* ANI */
 			ana(readArgument8());
 			cycle = 7;
 			break;
 			//		case 0XE7: /* RST 4 */
 		case 0xE8: /* RPE */
-			if (_state.parityFlag()) {
+			if (parityBit) {
 				_state.pc() = pop();
 				cycle = 11;
 			}
@@ -734,7 +837,24 @@ namespace xprocessors {
 			_state.pc() = _state.hl();
 			cycle = 5;
 			break;
+			//case 0xEA: /* JPE */
+			//	tmp16 = readArgument16();
+			//	if (parityBit)
+			//		_state.pc() = tmp16;
+			//	cycle = 10;
+			//	break;
 		case 0xEB: /* XCHG */ { uint8_t tmp = _state.d(); _state.d() = _state.h(); _state.h() = tmp; tmp = _state.e(); _state.e() = _state.l(); _state.l() = tmp; } cycle = 4; break;
+			//case 0xEC: /* CPE */
+			//	tmp16 = readArgument16();
+			//	if (parityBit) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xEE: /* XRI */
 			xra(readArgument8());
 			cycle = 7;
@@ -750,10 +870,27 @@ namespace xprocessors {
 				cycle = 5;
 			}
 			break;
+			//case 0xF2: /* JP */
+			//	tmp16 = readArgument16();
+			//	if (!_state.signFlag())
+			//		_state.pc() = tmp16;
+			//	cycle = 10;
+			//	break;
 		case 0xF3: /* DI */
 			interrupt_enabled = 0;
 			cycle = 4;
 			break;
+			//case 0xF4: /* CP */
+			//	tmp16 = readArgument16();
+			//	if (!_state.signFlag()) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xF6: /* ORI */
 			ora(readArgument8());
 			cycle = 7;
@@ -772,10 +909,27 @@ namespace xprocessors {
 			_state.sp() = _state.hl();
 			cycle = 5;
 			break;
+			//case 0xFA: /* JM */
+			//	tmp16 = readArgument16();
+			//	if (_state.signFlag())
+			//		_state.pc() = tmp16;
+			//	cycle = 10;
+			//	break;
 		case 0xFB: /* EI */
 			interrupt_enabled = 1;
 			cycle = 4;
 			break;
+			//case 0xFC: /* CM */
+			//	tmp16 = readArgument16();
+			//	if (_state.signFlag()) {
+			//		push(_state.pc());
+			//		_state.pc() = tmp16;
+			//		cycle = 17;
+			//	}
+			//	else {
+			//		cycle = 11;
+			//	}
+			//	break;
 		case 0xFE: /* CPI */
 			cmp(readArgument8());
 			cycle = 7;

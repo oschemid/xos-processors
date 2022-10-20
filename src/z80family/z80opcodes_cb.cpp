@@ -119,7 +119,7 @@ void Z80::decode_opcode_cb(const prefix p) {
 		apply_hl([this](const uint8_t r) { return sll(r); }, p, delta);
 		break;
 	case opcode::BIT_R:
-		bit(decode8(opcode), (opcode & 0b00111000) >> 3);
+		bit(decodeR(opcode), (opcode & 0b00111000) >> 3);
 		break;
 	case opcode::BIT_HL:
 		if (p == DD)

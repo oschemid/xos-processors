@@ -255,13 +255,13 @@ void Z80::decode_opcode_ed() {
 			rrd();
 			break;
 		case opcode::LD_SS_NNNN:
-			decode16(opcode) = read16(readArgument16());
+			decodeRR(opcode, read16(readArgument16()));
 			break;
 		case opcode::LD_NNNN_SS:
-			write16(readArgument16(), decode16(opcode));
+			write16(readArgument16(), decodeRR(opcode));
 			break;
 		case opcode::RETI_N:
-			_state.pc() = popOfStack();
+			_state.pc() = pop();
 			iff1 = iff2;
 			break;
 		case opcode::IN_R:
@@ -345,7 +345,7 @@ void Z80::rld() {
 }
 
 void Z80::adc_ss(const opcode_t opcode) {
-	const uint16_t b = decode16(opcode);
+	const uint16_t b = decodeRR(opcode);
 	const uint32_t s = _state.hl() + b + (_state.carryFlag() ? 1 : 0);
 	const uint32_t c = s ^ _state.hl() ^ b;
 	_state.hl() = static_cast<uint16_t>(s);
@@ -360,7 +360,7 @@ void Z80::adc_ss(const opcode_t opcode) {
 	_elapsed_cycles += 7;
 }
 void Z80::sbc_ss(const opcode_t opcode) {
-	const uint16_t b = decode16(opcode);
+	const uint16_t b = decodeRR(opcode);
 	const uint32_t s = _state.hl() - b - (_state.carryFlag() ? 1 : 0);
 	const uint32_t c = (s ^ _state.hl() ^ b) & 0x18000;
 	_state.hl() = static_cast<uint16_t>(s);
@@ -459,7 +459,7 @@ void Z80::in_c(const opcode_t opcode) {
 	uint8_t val = _handlerIn(_state.c());
 
 	if (opcode != 0x70)
-		decode8(opcode) = val;
+		decodeR(opcode, val);
 	_state.resetFlags(Z80State::NF | Z80State::HF);
 	_state.setSZXY(val);
 	_state.setP(val);
@@ -481,7 +481,7 @@ void Z80::ind() {
 	_elapsed_cycles += 5;
 }
 void Z80::out_c(const opcode_t opcode) {
-	uint8_t val = (opcode == 0x70) ? 0 : decode8(opcode);
+	uint8_t val = (opcode == 0x70) ? 0 : decodeR(opcode);
 	_handlerOut(_state.c(), val);
 }
 void Z80::outi() {

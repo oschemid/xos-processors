@@ -1,23 +1,23 @@
-#include "i8080_tests.h"
-#include "../src/z80family/i8080.h"
+#include "lr35902_tests.h"
+#include "../src/z80family/lr35902.h"
 #include <iostream>
 #include <fstream>
 
 
-tests::i8080_tests::i8080_tests() :
+tests::lr35902_tests::lr35902_tests() :
 	cpu_tests() {
-	cpu = Cpu::create("i8080");
+	cpu = Cpu::create("lr35902");
 	cpu->read([this](const uint16_t p) { return memory[p]; });
 	cpu->write([this](const uint16_t p, const uint8_t v) { memory[p] = v; return true; });
 }
 
-void tests::i8080_tests::out(const uint8_t p, const uint8_t v) {
+void tests::lr35902_tests::out(const uint8_t p, const uint8_t v) {
 	if (p == 0) {
 		finished = true;
 		return;
 	}
 	if (p == 1) {
-		auto cpuc = static_cast<xprocessors::Intel8080*>(cpu);
+		auto cpuc = static_cast<xprocessors::LR35902*>(cpu);
 		uint8_t operation = cpuc->c();
 
 		if (operation == 2) { // print a character stored in E
@@ -34,11 +34,11 @@ void tests::i8080_tests::out(const uint8_t p, const uint8_t v) {
 }
 
 const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
-	{ 0x00000000, 4 }, { 0x76000000, 7 }, // NOP, HALT
+	{ 0x00000000, 4 }, { 0x76000000, 4 }, // NOP, HALT
 
 	// Group 1 - 8-Bit Load Group
-	{ 0x40000000, 5 }, { 0x46000000, 7 }, { 0x70000000, 7 }, // LD r,r
-	{ 0x06000000, 7 }, { 0x36300000, 10 }, // LD r,n
+	{ 0x40000000, 4 }, { 0x46000000, 8 }, { 0x70000000, 8 }, // LD r,r
+	{ 0x06000000, 8 }, { 0x36300000, 12 }, // LD r,n
 
 	//{ 0x0a000000, 7 }, { 0x1a000000, 7 }, { 0x3A345600, 13 }, // LD A,(dd)
 	//{ 0x02000000, 7 }, { 0x12000000, 7 }, { 0x32000000, 13 }, // LD (dd),A
@@ -48,8 +48,8 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 	//{ 0x2a000000, 16 }, { 0xed4b0000, 20 }, { 0xdd2a0000, 20 }, { 0xfd2a0000, 20 }, // Ld ss, (nn)
 	//{ 0x22000000, 16 }, { 0xed430000, 20 }, { 0xdd220000, 20 }, { 0xfd220000, 20 }, // LD (nn), ss
 	//{ 0xf9000000, 6 }, { 0xddf90000, 10 }, { 0xfdf90000, 10 }, // LD SP, HL
-	{ 0xe5000000, 11 }, // PUSH
-	{ 0xe1000000, 10 }, // POP
+	{ 0xe5000000, 16 }, // PUSH
+	{ 0xe1000000, 12 }, // POP
 
 	//// Group 3 - Exchange, Block Transfer, Search Group
 	//{ 0xeb000000, 4 }, { 0x08000000, 4 }, { 0xd9000000, 4 }, {0xe3000000, 19 }, { 0xdde30000, 23 }, { 0xfde30000, 23 }, // EX
@@ -64,8 +64,8 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 	//{ 0xb0000000, 4 }, { 0xb6000000, 7 }, { 0xddb00000, 8 }, {0xfdb00000, 8 }, {0xf6000000, 7 }, { 0xddb60000, 19 }, { 0xfdb60000, 19 }, // OR
 	//{ 0xa8000000, 4 }, { 0xae000000, 7 }, { 0xdda80000, 8 }, {0xfda80000, 8 }, {0xee000000, 7 }, { 0xddae0000, 19 }, { 0xfdae0000, 19 }, // XOR
 	//{ 0xb8000000, 4 }, { 0xbe000000, 7 }, { 0xddb80000, 8 }, {0xfdb80000, 8 }, {0xfe000000, 7 }, { 0xddbe0000, 19 }, { 0xfdbe0000, 19 }, // CP
-	{ 0x04000000, 5 }, {0x34000000, 10 }, // INC
-	{ 0x05000000, 5 }, {0x35000000, 10 }, // DEC
+	//{ 0x04000000, 5 }, {0x34000000, 10 }, // INC
+	//{ 0x05000000, 5 }, {0x35000000, 10 }, // DEC
 
 	//// Group 5 - General-Purpose Arithmetic and CPU Control Group
 	//{ 0x27000000, 4 }, { 0xed440000, 8 }, // DAA, NEG
@@ -96,12 +96,13 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 	//{ 0xcb800000, 8 }, { 0xcb860000, 15 }, { 0xddcb0086, 23 }, { 0xfdcb0086, 23 }, { 0xddcb0081, 23 }, { 0xfdcb0082, 23 }, // RES
 
 	//// Group 9 - Jump Group
-	{ 0xc3100000, 10 }, // { 0xe9000000, 4 }, { 0xdde90000, 8 }, { 0xfde90000, 8 }, { 0xf2100000, 10 }, // JP
-	{ 0xc2100000, 10 }, { 0xca100000, 10 }, // JP CC
+	{ 0xc3100000, 16 }, // { 0xe9000000, 4 }, { 0xdde90000, 8 }, { 0xfde90000, 8 }, { 0xf2100000, 10 }, // JP
+	{ 0xc2100000, 16 }, { 0xca100000, 12 }, // JP CC
+
 	//{ 0x18010000, 12 }, { 0x20010000, 12 }, { 0x28010000, 7 }, { 0x10010000, 13 }, // JR, DJNZ
 
 	//// Group 10 - Call and Return Group
-	{ 0xcd145000, 17 }, { 0xc4145000, 17 }, { 0xcc145000, 11 }, // CALL
+	{ 0xcd145000, 24 }, { 0xc4145000, 24 }, { 0xcc145000, 12 }, // CALL
 	//{ 0xc9000000, 10 }, { 0xc0000000, 11 }, { 0xc8000000, 5 }, { 0xed450000, 14 }, { 0xed4d0000, 14 }, // RET
 	//{ 0xc7000000, 11 }, // RST
 
@@ -114,7 +115,7 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 	//{ 0xedab0000, 16 }, { 0xedbb0000, 21 }, // OUTD
 };
 
-bool tests::i8080_tests::runTest(const string& filename, const uint64_t cycles_expected) {
+bool tests::lr35902_tests::runTest(const string& filename, const uint64_t cycles_expected) {
 	uint64_t cycles = 0;
 	load(0x100, filename);
 	memory[0] = 0xD3;
@@ -136,21 +137,9 @@ bool tests::i8080_tests::runTest(const string& filename, const uint64_t cycles_e
 	return true;
 }
 
-bool tests::i8080_tests::run() {
+bool tests::lr35902_tests::run() {
 	std::cout << "Check cycles" << std::endl;
 	runTestCycles(opcodes);
-	std::cout << std::endl;
-	std::cout << "TST8080.COM" << std::endl;
-	runTest("tests/data/i8080/TST8080.COM", 4924);
-	std::cout << std::endl;
-	std::cout << "8080PRE.COM" << std::endl;
-	runTest("tests/data/i8080/8080PRE.COM", 7817);
-	std::cout << std::endl;
-	std::cout << "8080EXM.COM" << std::endl;
-	runTest("tests/data/i8080/8080EXM.COM", 23803381171);
-	std::cout << std::endl;
-	std::cout << "CPUTEST.COM" << std::endl;
-	runTest("tests/data/i8080/CPUTEST.COM", 255653383);
 	std::cout << std::endl;
 	return true;
 }

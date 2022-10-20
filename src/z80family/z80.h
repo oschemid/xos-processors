@@ -96,7 +96,7 @@ namespace xprocessors {
 
 		// Registers 16 bits
 		uint16_t af() const { return (_alternative[0]) ? _pairs.word[register16::AF + 6] : _pairs.word[register16::AF]; }
-		uint16_t& af() { return (_alternative[0]) ? _pairs.word[register16::AF + 6] : _pairs.word[register16::AF]; }
+		void af(const uint16_t value) { if (_alternative[0]) _pairs.word[register16::AF + 6] = value; else _pairs.word[register16::AF] = value; }
 		uint16_t bc() const { return (_alternative[1]) ? _pairs.word[register16::BC + 6] : _pairs.word[register16::BC]; }
 		uint16_t& bc() { return (_alternative[1]) ? _pairs.word[register16::BC + 6] : _pairs.word[register16::BC]; }
 		uint16_t de() const { return (_alternative[2]) ? _pairs.word[register16::DE + 6] : _pairs.word[register16::DE]; }
@@ -159,7 +159,15 @@ namespace xprocessors {
 			_sp = 0;
 		}
 	};
-	class Z80 : public Z80FamilyCpu<Z80State>
+	struct Z80Costs {
+		static const uint8_t READ_OPCODE = 4;
+		static const uint8_t READ_MEMORY8 = 3;
+		static const uint8_t READ_MEMORY16 = 6;
+		static const uint8_t WRITE_MEMORY8 = 3;
+		static const uint8_t WRITE_MEMORY16 = 6;
+		static const uint8_t WRITE_PC = 0;
+	};
+	class Z80 : public Z80FamilyCpu<Z80State, Z80Costs>
 	{
 	protected:
 		enum prefix {
@@ -167,17 +175,213 @@ namespace xprocessors {
 			DD,
 			FD
 		};
+		prefix current_prefix;
+
+		const uint8_t decodeR(const opcode_t opcode) override {
+			switch ((opcode & 0x07) | (current_prefix << 4)) {
+			case 0x00:
+			case 0x10:
+			case 0x20:
+				return _state.b();
+			case 0x01:
+			case 0x11:
+			case 0x21:
+				return _state.c();
+			case 0x02:
+			case 0x12:
+			case 0x22:
+				return _state.d();
+			case 0x03:
+			case 0x13:
+			case 0x23:
+				return _state.e();
+			case 0x04:
+				return _state.h();
+			case 0x14:
+				return _state.ixh();
+			case 0x24:
+				return _state.iyh();
+			case 0x05:
+				return _state.l();
+			case 0x15:
+				return _state.ixl();
+			case 0x25:
+				return _state.iyl();
+			case 0x06:
+				return read8(_state.hl());
+			case 0x16:
+				return read8(_state.ix());
+			case 0x26:
+				return read8(_state.iy());
+			case 0x07:
+			case 0x17:
+			case 0x27:
+				return _state.a();
+			}
+			throw std::runtime_error("Unexpected opcode in decode8 " + opcode);
+		}
+		void decodeR(const opcode_t opcode, const uint8_t value) override {
+			switch ((opcode & 0x07) | (current_prefix << 4)) {
+			case 0x00:
+			case 0x10:
+			case 0X20:
+				_state.b() = value;
+				return;
+			case 0x01:
+			case 0x11:
+			case 0x21:
+				_state.c() = value;
+				return;
+			case 0x02:
+			case 0x12:
+			case 0x22:
+				_state.d() = value;
+				return;
+			case 0x03:
+			case 0x13:
+			case 0x23:
+				_state.e() = value;
+				return;
+			case 0x04:
+				_state.h() = value;
+				return;
+			case 0x14:
+				_state.ixh() = value;
+				return;
+			case 0x24:
+				_state.iyh() = value;
+				return;
+			case 0x05:
+				_state.l() = value;
+				return;
+			case 0x15:
+				_state.ixl() = value;
+				return;
+			case 0x25:
+				_state.iyl() = value;
+				return;
+			case 0x06:
+				write8(_state.hl(), value);
+				return;
+			case 0x16:
+				write8(_state.ix(), value);
+				return;
+			case 0x26:
+				write8(_state.iy(), value);
+				return;
+			case 0x07:
+			case 0x17:
+			case 0x27:
+				_state.a() = value;
+				return;
+			}
+		}
+		const uint16_t decodeRR(const opcode_t opcode) const override {
+			switch ((opcode & 0x30) | current_prefix) {
+			case 0x00:
+			case 0x01:
+			case 0x02:
+				return _state.bc();
+			case 0x10:
+			case 0x11:
+			case 0x12:
+				return _state.de();
+			case 0x20:
+				return _state.hl();
+			case 0x21:
+				return _state.ix();
+			case 0x22:
+				return _state.iy();
+			case 0x30:
+			case 0x31:
+			case 0x32:
+				return _state.sp();
+			}
+		}
+		void decodeRR(const opcode_t opcode, const uint16_t value) override {
+			switch ((opcode & 0x30) | current_prefix) {
+			case 0x00:
+			case 0x01:
+			case 0x02:
+				_state.bc() = value;
+				return;
+			case 0x10:
+			case 0x11:
+			case 0x12:
+				_state.de() = value;
+				return;
+			case 0x20:
+				_state.hl() = value;
+				return;
+			case 0x21:
+				_state.ix() = value;
+				return;
+			case 0x22:
+				_state.iy() = value;
+				return;
+			case 0x30:
+			case 0x31:
+			case 0x32:
+				_state.sp() = value;
+				return;
+			}
+		}
+		const uint16_t decodePush(const opcode_t opcode) const override {
+			switch ((opcode & 0x30) | current_prefix) {
+			case 0x00:
+			case 0x01:
+			case 0x02:
+				return _state.bc();
+			case 0x10:
+			case 0x11:
+			case 0x12:
+				return _state.de();
+			case 0x20:
+				return _state.hl();
+			case 0x21:
+				return _state.ix();
+			case 0x22:
+				return _state.iy();
+			case 0x30:
+			case 0x31:
+			case 0x32:
+				return _state.af();
+			}
+		}
+		void decodePop(const opcode_t opcode, const uint16_t value) override {
+			switch ((opcode & 0x30) | current_prefix) {
+			case 0x00:
+			case 0x01:
+			case 0x02:
+				_state.bc() = value;
+				return;
+			case 0x10:
+			case 0x11:
+			case 0x12:
+				_state.de() = value;
+				return;
+			case 0x20:
+				_state.hl() = value;
+				return;
+			case 0x21:
+				_state.ix() = value;
+				return;
+			case 0x22:
+				_state.iy() = value;
+				return;
+			case 0x30:
+			case 0x31:
+			case 0x32:
+				_state.af(value);
+				return;
+			}
+		}
 
 		// Decode registers from opcode
-		uint16_t decode16(const opcode_t, const prefix = NO, const bool stack = false) const;
-		uint16_t& decode16(const opcode_t, const prefix = NO, const bool stack = false);
-		uint8_t decode8(const opcode_t, const prefix = NO) const;
-		uint8_t& decode8(const opcode_t, const prefix = NO);
-		bool checkCondition3(const opcode_t) const;
 		bool checkCondition2(const opcode_t) const;
 
 		// Decode opcode
-		void decode_opcode(const uint8_t, const prefix = NO);
+		void decode_opcode(const uint8_t);
 		void decode_opcode_cb(const prefix);
 		void decode_opcode_ed();
 
@@ -196,7 +400,6 @@ namespace xprocessors {
 		bool iff1_waiting;
 		bool iff1;
 		bool iff2;
-		bool halted;
 
 		bool interrupt_waiting;
 		uint8_t interrupt_request;
@@ -257,30 +460,9 @@ namespace xprocessors {
 		void unimplemented();
 		void illegal();
 
-		void pushToStack(const uint16_t);
-		const uint16_t popOfStack();
+		//void pushToStack(const uint16_t);
+		//const uint16_t popOfStack();
 
-		//const uint8_t readArgument8() {
-		//	_elapsed_cycles += 4;
-		//	return _handlerRead(pc++);
-		//}
-		//const uint16_t readArgument16() {
-		//	_elapsed_cycles += 6;
-		//	return _handlerRead(pc++) | (_handlerRead(pc++) << 8);
-		//}
-		const uint16_t read16(const uint16_t address) {
-			_elapsed_cycles += 6;
-			return _handlerRead(address) | (_handlerRead(address + 1) << 8);
-		}
-		//void write8(const uint16_t address, const uint8_t value) {
-		//	_elapsed_cycles += 3;
-		//	_handlerWrite(address, value);
-		//}
-		void write16(const uint16_t address, const uint16_t value) {
-			_elapsed_cycles += 6;
-			_handlerWrite(address, value & 0xFF);
-			_handlerWrite(address + 1, value >> 8);
-		}
 		Z80();
 
 	public:
