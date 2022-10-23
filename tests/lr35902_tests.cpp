@@ -103,7 +103,7 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 
 	//// Group 10 - Call and Return Group
 	{ 0xcd145000, 24 }, { 0xc4145000, 24 }, { 0xcc145000, 12 }, // CALL
-	//{ 0xc9000000, 10 }, { 0xc0000000, 11 }, { 0xc8000000, 5 }, { 0xed450000, 14 }, { 0xed4d0000, 14 }, // RET
+	{ 0xc9000000, 16 }, { 0xc0000000, 20 }, { 0xc8000000, 8 }, // RET
 	//{ 0xc7000000, 11 }, // RST
 
 	//// Group 11 -  Input and Output Group

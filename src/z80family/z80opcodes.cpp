@@ -5,54 +5,34 @@
 
 enum class opcode {
 	COMMON_OPCODES,
-	LD_R_HL,
-	LD_HL_R,
-
-	DI,
-	EI,
 	DECODE_CB,
 	DECODE_DD,
 	DECODE_ED,
 	DECODE_FD,
 
-	ADD_HL_SS,
-	ADD_N,
-	ADD_R,
+	LD_R_HL,
+	LD_HL_R,
 	ADD_HL,
-	ADC_N,
-	ADC_R,
 	ADC_HL,
-	SUB_N,
-	SUB_R,
 	SUB_HL,
-	SBC_N,
-	SBC_R,
 	SBC_HL,
-	AND_N,
-	AND_R,
 	AND_HL,
-	XOR_N,
-	XOR_R,
 	XOR_HL,
-	OR_N,
-	OR_R,
 	OR_HL,
-	CP_N,
-	CP_R,
 	CP_HL,
-	INC_R,
 	INC_HL,
-	INC_SS,
-	DEC_R,
 	DEC_HL,
-	DEC_SS,
+
+	DI,
+	EI,
+
+	ADD_HL_SS,
 	DAA,
 	CPL,
 	SCF,
 	CCF,
 	LD_HL_NNNN,
 	LD_NNNN_HL,
-	LD_SS_NN,
 	LD_A_DE,
 	LD_DE_A,
 	LD_A_BC,
@@ -73,8 +53,6 @@ enum class opcode {
 	JR,
 	JR_C,
 	DJNZ,
-	RET,
-	RET_CC,
 	RST,
 	IN_N,
 	OUT_N,
@@ -92,40 +70,33 @@ constexpr auto opcodes{ []() constexpr {
 			if ((i & 0x38) == 0b00110000)
 				result[i] = opcode::LD_HL_R;
 		}
-		if ((i & 0b11000111) == 0b00000110)
-			result[i] = (i == 0b00110110) ? opcode::LD_HL_N : opcode::LD_R_N;
-		if ((i & 0b11001111) == 0b00000001)
-			result[i] = opcode::LD_SS_NN;
+		if (i == 0b10000110)
+			result[i] = opcode::ADD_HL;
+		if (i == 0b10001110)
+			result[i] = opcode::ADC_HL;
+		if (i == 0b10010110)
+			result[i] = opcode::SUB_HL;
+		if (i == 0b10011110)
+			result[i] = opcode::SBC_HL;
+		if (i == 0b10100110)
+			result[i] = opcode::AND_HL;
+		if (i == 0b10101110)
+			result[i] = opcode::XOR_HL;
+		if (i == 0b10110110)
+			result[i] = opcode::OR_HL;
+		if (i == 0b10111110)
+			result[i] = opcode::CP_HL;
+		if (i == 0b00110110)
+			result[i] = opcode::LD_HL_N;
+		if (i == 0b00110100)
+			result[i] = opcode::INC_HL;
+		if (i == 0b00110101)
+			result[i] = opcode::DEC_HL;
+
 		if ((i & 0b11001111) == 0b00001001)
 			result[i] = opcode::ADD_HL_SS;
-		if ((i & 0b11000111) == 0b00000100)
-			result[i] = (i == 0b00110100) ? opcode::INC_HL : opcode::INC_R;
-		if ((i & 0b11001111) == 0b00000011)
-			result[i] = opcode::INC_SS;
-		if ((i & 0b11000111) == 0b00000101)
-			result[i] = (i == 0b00110101) ? opcode::DEC_HL : opcode::DEC_R;
-		if ((i & 0b11001111) == 0b00001011)
-			result[i] = opcode::DEC_SS;
-		if ((i & 0b11111000) == 0b10000000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::ADD_HL : opcode::ADD_R;
-		if ((i & 0b11111000) == 0b10001000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::ADC_HL : opcode::ADC_R;
-		if ((i & 0b11111000) == 0b10010000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SUB_HL : opcode::SUB_R;
-		if ((i & 0b11111000) == 0b10011000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SBC_HL : opcode::SBC_R;
-		if ((i & 0b11111000) == 0b10100000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::AND_HL : opcode::AND_R;
-		if ((i & 0b11111000) == 0b10101000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::XOR_HL : opcode::XOR_R;
-		if ((i & 0b11111000) == 0b10110000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::OR_HL : opcode::OR_R;
-		if ((i & 0b11111000) == 0b10111000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::CP_HL : opcode::CP_R;
 		if ((i & 0b11100111) == 0b00100000)
 			result[i] = opcode::JR_C;
-		if ((i & 0b11000111) == 0b11000000)
-			result[i] = opcode::RET_CC;
 		if ((i & 0b11000111) == 0b11000111)
 			result[i] = opcode::RST;
 		switch (i) {
@@ -186,79 +157,49 @@ constexpr auto opcodes{ []() constexpr {
 		case 0x3F:
 			result[i] = opcode::CCF;
 			break;
-		case 0xC3:
-			result[i] = opcode::JP;
-			break;
-		case 0xC6:
-			result[i] = opcode::ADD_N;
-			break;
-		case 0xc9:
-			result[i] = opcode::RET;
-			break;
 		case 0xCB:
 			result[i] = opcode::DECODE_CB;
 			break;
-			case 0xCE:
-				result[i] = opcode::ADC_N;
-				break;
-			case 0xD3:
-				result[i] = opcode::OUT_N;
-				break;
-			case 0xD6:
-				result[i] = opcode::SUB_N;
-				break;
-			case 0xD9:
-				result[i] = opcode::EXX;
-				break;
-			case 0xDB:
-				result[i] = opcode::IN_N;
-				break;
-			case 0xDD:
-				result[i] = opcode::DECODE_DD;
-				break;
-			case 0xDE:
-				result[i] = opcode::SBC_N;
-				break;
-			case 0xE3:
-				result[i] = opcode::EX_SP;
-				break;
-			case 0xE6:
-				result[i] = opcode::AND_N;
-				break;
-			case 0xE9:
-				result[i] = opcode::JP_HL;
-				break;
-			case 0xEB:
-				result[i] = opcode::EX_DE;
-				break;
-			case 0xED:
-				result[i] = opcode::DECODE_ED;
-				break;
-			case 0xEE:
-				result[i] = opcode::XOR_N;
-				break;
-			case 0xF3:
-				result[i] = opcode::DI;
-				break;
-			case 0xF6:
-				result[i] = opcode::OR_N;
-				break;
-			case 0xF9:
-				result[i] = opcode::LD_SP_HL;
-				break;
-			case 0xFB:
-				result[i] = opcode::EI;
-				break;
-			case 0xFD:
-				result[i] = opcode::DECODE_FD;
-				break;
-			case 0xFE:
-				result[i] = opcode::CP_N;
-				break;
-			}
+		case 0xD3:
+			result[i] = opcode::OUT_N;
+			break;
+		case 0xD9:
+			result[i] = opcode::EXX;
+			break;
+		case 0xDB:
+			result[i] = opcode::IN_N;
+			break;
+		case 0xDD:
+			result[i] = opcode::DECODE_DD;
+			break;
+		case 0xE3:
+			result[i] = opcode::EX_SP;
+			break;
+		case 0xE9:
+			result[i] = opcode::JP_HL;
+			break;
+		case 0xEB:
+			result[i] = opcode::EX_DE;
+			break;
+		case 0xED:
+			result[i] = opcode::DECODE_ED;
+			break;
+		case 0xF3:
+			result[i] = opcode::DI;
+			break;
+		case 0xF9:
+			result[i] = opcode::LD_SP_HL;
+			break;
+		case 0xFB:
+			result[i] = opcode::EI;
+			break;
+		case 0xFD:
+			result[i] = opcode::DECODE_FD;
+			break;
 		}
-		return result;
-	}()
+	}
+	return result;
+}()
 };
 
 
@@ -310,15 +251,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 		else
 			_elapsed_cycles += 2;
 		break;
-	case opcode::LD_SP_HL:
-		if (current_prefix == NO)
-			_state.sp() = _state.hl();
-		else if (current_prefix == DD)
-			_state.sp() = _state.ix();
-		else
-			_state.sp() = _state.iy();
-		_elapsed_cycles += 2;
-		break;
 	case opcode::LD_R_HL:
 		if (current_prefix == NO) {
 			decodeR(opcode >> 3, read8(_state.hl()));
@@ -341,17 +273,22 @@ void Z80::decode_opcode(const uint8_t opcode) {
 		int8_t delta = (current_prefix != NO) ? readArgument8() : 0;
 		apply_hl([this](const uint8_t) { return readArgument8(); }, current_prefix, delta);
 		_elapsed_cycles -= 4;
-		//if (p == NO)
-		//	_elapsed_cycles--;
 	}
 	break;
+	case opcode::LD_SP_HL:
+		if (current_prefix == NO)
+			_state.sp() = _state.hl();
+		else if (current_prefix == DD)
+			_state.sp() = _state.ix();
+		else
+			_state.sp() = _state.iy();
+		_elapsed_cycles += 2;
+		break;
 	case opcode::LD_A_BC:
 		_state.a() = read8(_state.bc());
-		//		_elapsed_cycles--;
 		break;
 	case opcode::LD_A_DE:
 		_state.a() = read8(_state.de());
-		//		_elapsed_cycles--;
 		break;
 	case opcode::LD_BC_A:
 		write8(_state.bc(), _state.a());
@@ -359,12 +296,8 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::LD_DE_A:
 		write8(_state.de(), _state.a());
 		break;
-	case opcode::LD_SS_NN:
-		decodeRR(opcode, readArgument16());
-		break;
 	case opcode::LD_A_NNNN:
 		_state.a() = read8(readArgument16());
-		//		_elapsed_cycles--;
 		break;
 	case opcode::LD_NNNN_A:
 		write8(readArgument16(), _state.a());
@@ -386,13 +319,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::ADD_HL_SS:
 		add_ss(opcode, current_prefix);
 		break;
-	case opcode::ADD_N:
-		add(readArgument8());
-		//		_elapsed_cycles--;
-		break;
-	case opcode::ADD_R:
-		add(decodeR(opcode));
-		break;
 	case opcode::ADD_HL:
 		if (current_prefix == DD) {
 			add(read8(_state.ix() + static_cast<signed char>(readArgument8())));
@@ -404,36 +330,20 @@ void Z80::decode_opcode(const uint8_t opcode) {
 		}
 		else {
 			add(read8(_state.hl()));
-			//			_elapsed_cycles--;
 		}
-		break;
-	case opcode::ADC_N:
-		add(readArgument8(), (_state.carryFlag()) ? 1 : 0);
-		//		_elapsed_cycles--;
-		break;
-	case opcode::ADC_R:
-		add(decodeR(opcode), (_state.carryFlag()) ? 1 : 0);
 		break;
 	case opcode::ADC_HL:
 		if (current_prefix == DD) {
-			add(read8(_state.ix() + static_cast<signed char>(readArgument8())), (_state.carryFlag()) ? 1 : 0);
+			adc(read8(_state.ix() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 3;
 		}
 		else if (current_prefix == FD) {
-			add(read8(_state.iy() + static_cast<signed char>(readArgument8())), (_state.carryFlag()) ? 1 : 0);
+			adc(read8(_state.iy() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 3;
 		}
 		else {
-			add(read8(_state.hl()), (_state.carryFlag()) ? 1 : 0);
-			//			_elapsed_cycles--;
+			adc(read8(_state.hl()));
 		}
-		break;
-	case opcode::SUB_N:
-		sub(readArgument8());
-		//		_elapsed_cycles--;
-		break;
-	case opcode::SUB_R:
-		sub(decodeR(opcode));
 		break;
 	case opcode::SUB_HL:
 		if (current_prefix == DD) {
@@ -449,33 +359,19 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_elapsed_cycles--;
 		}
 		break;
-	case opcode::SBC_N:
-		sub(readArgument8(), (_state.carryFlag()) ? 1 : 0);
-		_elapsed_cycles--;
-		break;
-	case opcode::SBC_R:
-		sub(decodeR(opcode), (_state.carryFlag()) ? 1 : 0);
-		break;
 	case opcode::SBC_HL:
 		if (current_prefix == DD) {
-			sub(read8(_state.ix() + static_cast<signed char>(readArgument8())), (_state.carryFlag()) ? 1 : 0);
+			sbc(read8(_state.ix() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 3;
 		}
 		else if (current_prefix == FD) {
-			sub(read8(_state.iy() + static_cast<signed char>(readArgument8())), (_state.carryFlag()) ? 1 : 0);
+			sbc(read8(_state.iy() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 3;
 		}
 		else {
-			sub(read8(_state.hl()), (_state.carryFlag()) ? 1 : 0);
+			sbc(read8(_state.hl()));
 			_elapsed_cycles--;
 		}
-		break;
-	case opcode::AND_N:
-		ana(readArgument8());
-		_elapsed_cycles--;
-		break;
-	case opcode::AND_R:
-		ana(decodeR(opcode));
 		break;
 	case opcode::AND_HL:
 		if (current_prefix == DD) {
@@ -491,13 +387,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_elapsed_cycles--;
 		}
 		break;
-	case opcode::XOR_N:
-		xra(readArgument8());
-		_elapsed_cycles--;
-		break;
-	case opcode::XOR_R:
-		xra(decodeR(opcode));
-		break;
 	case opcode::XOR_HL:
 		if (current_prefix == DD) {
 			xra(read8(_state.ix() + static_cast<signed char>(readArgument8())));
@@ -511,13 +400,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			xra(read8(_state.hl()));
 			_elapsed_cycles--;
 		}
-		break;
-	case opcode::OR_N:
-		ora(readArgument8());
-		_elapsed_cycles--;
-		break;
-	case opcode::OR_R:
-		ora(decodeR(opcode));
 		break;
 	case opcode::OR_HL:
 		if (current_prefix == DD) {
@@ -533,24 +415,17 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_elapsed_cycles--;
 		}
 		break;
-	case opcode::CP_N:
-		cp(readArgument8());
-		_elapsed_cycles--;
-		break;
-	case opcode::CP_R:
-		cp(decodeR(opcode));
-		break;
 	case opcode::CP_HL:
 		if (current_prefix == DD) {
-			cp(read8(_state.ix() + static_cast<signed char>(readArgument8())));
+			cmp(read8(_state.ix() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 3;
 		}
 		else if (current_prefix == 2) {
-			cp(read8(_state.iy() + static_cast<signed char>(readArgument8())));
+			cmp(read8(_state.iy() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 3;
 		}
 		else {
-			cp(read8(_state.hl()));
+			cmp(read8(_state.hl()));
 			_elapsed_cycles--;
 		}
 		break;
@@ -589,31 +464,15 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::RRA:
 		rra(false);
 		break;
-	case opcode::INC_R:
-		decodeR(opcode >> 3, inc(decodeR(opcode >> 3)));
-		//		apply_r([this](const uint8_t r) { return inc(r); }, opcode >> 3, current_prefix);
-		break;
 	case opcode::INC_HL:
 		apply_hl([this](const uint8_t r) { return inc(r); }, current_prefix, (current_prefix == NO) ? 0 : static_cast<int8_t>(readArgument8()));
 		if (current_prefix != NO)
 			_elapsed_cycles += 4;
 		break;
-	case opcode::DEC_R:
-		decodeR(opcode >> 3, dec(decodeR(opcode >> 3)));
-		//		apply_r([this](const uint8_t r) { return dec(r); }, opcode >> 3, current_prefix);
-		break;
 	case opcode::DEC_HL:
 		apply_hl([this](const uint8_t r) { return dec(r); }, current_prefix, (current_prefix == NO) ? 0 : static_cast<int8_t>(readArgument8()));
 		if (current_prefix != NO)
 			_elapsed_cycles += 4;
-		break;
-	case opcode::INC_SS:
-		decodeRR(opcode, decodeRR(opcode) + 1);
-		_elapsed_cycles += 2;
-		break;
-	case opcode::DEC_SS:
-		decodeRR(opcode, decodeRR(opcode) - 1);
-		_elapsed_cycles += 2;
 		break;
 	case opcode::EX_AF:
 		_state.exchange(Z80State::AF);
@@ -661,14 +520,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_state.pc() = _state.pc() + static_cast<signed char>(tmp8);
 			_elapsed_cycles += 5;
 		}
-		break;
-	case opcode::RET:
-		_state.pc() = pop();
-		break;
-	case opcode::RET_CC:
-		if (checkCC(opcode))
-			_state.pc() = pop();
-		_elapsed_cycles++;
 		break;
 	case opcode::RST:
 		push(_state.pc());
@@ -747,8 +598,25 @@ void Z80::daa() {
 	_state.setP(_state.a());
 	_state.f() |= carry;
 }
-void Z80::add(const uint8_t value, const uint8_t flag)
+void Z80::add(const uint8_t value)
 {
+	const uint16_t sum = _state.a() + value;
+	const uint16_t carryIns = sum ^ _state.a() ^ value;
+
+	_state.a() = sum & 0xff;
+
+	_state.resetFlags(Z80State::NF | Z80State::HF | Z80State::PF | Z80State::CF);
+	_state.setSZXY(_state.a());
+	if (sum > 0xff)
+		_state.setFlags(Z80State::CF);
+	if (carryIns & 0x10)
+		_state.setFlags(Z80State::HF);
+	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
+		_state.setFlags(Z80State::PF);
+}
+void Z80::adc(const uint8_t value)
+{
+	const uint8_t flag = _state.carryFlag() ? 1 : 0;
 	const uint16_t sum = _state.a() + value + flag;
 	const uint16_t carryIns = sum ^ _state.a() ^ value;
 
@@ -763,8 +631,27 @@ void Z80::add(const uint8_t value, const uint8_t flag)
 	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
 		_state.setFlags(Z80State::PF);
 }
-void Z80::sub(const uint8_t value, const uint8_t flag)
+void Z80::sub(const uint8_t value)
 {
+	const uint16_t sum = _state.a() - value;
+	const uint16_t carryIns = (sum ^ _state.a() ^ value);
+
+	_state.a() = sum & 0xff;
+
+	_state.resetFlags(Z80State::HF | Z80State::PF | Z80State::CF);
+	_state.setFlags(Z80State::NF);
+	_state.setSZXY(_state.a());
+	if (carryIns & 0x10)
+		_state.setFlags(Z80State::HF);
+
+	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
+		_state.setFlags(Z80State::PF);
+	if ((carryIns >> 8) & 0x1)
+		_state.setFlags(Z80State::CF);
+}
+void Z80::sbc(const uint8_t value)
+{
+	const uint8_t flag = _state.carryFlag() ? 1 : 0;
 	const uint16_t sum = _state.a() - value - flag;
 	const uint16_t carryIns = (sum ^ _state.a() ^ value);
 
@@ -781,7 +668,7 @@ void Z80::sub(const uint8_t value, const uint8_t flag)
 	if ((carryIns >> 8) & 0x1)
 		_state.setFlags(Z80State::CF);
 }
-void Z80::cp(const uint8_t value)
+void Z80::cmp(const uint8_t value)
 {
 	const uint16_t sum = _state.a() - value;
 	const uint16_t carryIns = (sum ^ _state.a() ^ value);
@@ -854,11 +741,4 @@ uint16_t Z80::exchange_sp(const uint16_t hl) {
 	const uint16_t sp = read16(_state.sp());
 	write16(_state.sp(), hl);
 	return sp;
-}
-void Z80::call(const uint16_t address, const uint8_t condition) {
-	if (condition) {
-		push(_state.pc());
-		_state.pc() = address;
-		_elapsed_cycles++;
-	}
 }

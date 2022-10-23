@@ -6,16 +6,18 @@ namespace xprocessors {
 	class Cpu {
 	protected:
 		uint64_t _elapsed_cycles;
+		uint64_t _executed_instructions;
 
 		out_fn _handlerOut;
 		in_fn _handlerIn;
 		read_fn _handlerRead;
 		write_fn _handlerWrite;
 
-		Cpu() {};
+		Cpu() : _elapsed_cycles(0), _executed_instructions(0) {};
 
 	public:
 		const uint64_t elapsed_cycles() const { return _elapsed_cycles; }
+		const uint64_t executed_instructions() const { return _executed_instructions; }
 
 		virtual bool reset(const uint16_t = 0) = 0;
 		virtual const uint8_t executeOne() = 0;

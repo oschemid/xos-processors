@@ -13,8 +13,6 @@ tests::z80_tests::z80_tests() :
 
 
 const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
-	{ 0x00000000, 4 }, { 0x76000000, 4 }, // NOP, HALT
-
 	// Group 1 - 8-Bit Load Group
 	{ 0x40000000, 4 }, { 0xdd400000, 8 }, { 0xfd400000, 8 }, // LD r,r
 	{ 0x06000000, 7 }, { 0xdd060000, 11 }, { 0xfd060000, 11 }, // LD r,n

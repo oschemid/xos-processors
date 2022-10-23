@@ -166,6 +166,10 @@ namespace xprocessors {
 		static const uint8_t WRITE_MEMORY8 = 3;
 		static const uint8_t WRITE_MEMORY16 = 6;
 		static const uint8_t WRITE_PC = 0;
+		static const uint8_t READ_WRITE_R = 0;
+		static const uint8_t EXTRAPUSH = 0;
+		static const uint8_t EXTRARETCALL = 1;
+		static const uint8_t EXTRAHALT = 0;
 	};
 	class Z80 : public Z80FamilyCpu<Z80State, Z80Costs>
 	{
@@ -411,23 +415,25 @@ namespace xprocessors {
 		} im;
 
 	protected:
+		void add(const uint8_t) override;
+		void adc(const uint8_t) override;
+		void sub(const uint8_t) override;
+		void sbc(const uint8_t) override;
+		void ora(const uint8_t) override;
+		void xra(const uint8_t) override;
+		void ana(const uint8_t) override;
+		void cmp(const uint8_t) override;
+
+		uint8_t inc(const uint8_t) override;
+		uint8_t dec(const uint8_t) override;
 
 		/* opcodes */
 		void rla(const bool);
 		void rra(const bool);
 		void daa();
 		void add_ss(const opcode_t, const prefix);
-		void add(const uint8_t, const uint8_t = 0);
-		void sub(const uint8_t, const uint8_t = 0);
-		void ana(const uint8_t);
-		void ora(const uint8_t);
-		void xra(const uint8_t);
-		void cp(const uint8_t);
-		uint8_t inc(const uint8_t);
-		uint8_t dec(const uint8_t);
 		void exchange_de_hl();
 		uint16_t exchange_sp(const uint16_t);
-		void call(const uint16_t, const uint8_t = true);
 
 		/* opcodes CB */
 		uint8_t rlc(const uint8_t);

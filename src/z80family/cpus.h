@@ -5,7 +5,9 @@
 
 
 namespace xprocessors {
-	template <class S, class Cost> class Z80FamilyCpu : public Cpu {
+	template <class S, class C> class Z80FamilyCpu : public Cpu {
+
+		typedef C Cost;
 	public:
 		// Temporary access
 		uint8_t c() const { return _state.c(); }
@@ -21,6 +23,7 @@ namespace xprocessors {
 		// opcode decoding
 		const opcode_t readOpcode() {
 			_elapsed_cycles += Cost::READ_OPCODE;
+			_executed_instructions++;
 			return _handlerRead(_state.pc()++);
 		}
 		const uint8_t readArgument8() {
@@ -48,7 +51,27 @@ namespace xprocessors {
 				_state.pc() = address;
 				_elapsed_cycles += Cost::WRITE_PC;
 			}
+			else
+				_elapsed_cycles += Cost::EXTRARETCALL;
 		}
+		void ret(const bool condition = true) {
+			if (condition) {
+				_state.pc() = pop();
+				_elapsed_cycles += Cost::WRITE_PC;
+			}
+		}
+
+		virtual void add(const uint8_t) = 0;
+		virtual void adc(const uint8_t) = 0;
+		virtual void sub(const uint8_t) = 0;
+		virtual void sbc(const uint8_t) = 0;
+		virtual void ora(const uint8_t) = 0;
+		virtual void xra(const uint8_t) = 0;
+		virtual void ana(const uint8_t) = 0;
+		virtual void cmp(const uint8_t) = 0;
+
+		virtual uint8_t inc(const uint8_t) = 0;
+		virtual uint8_t dec(const uint8_t) = 0;
 
 		virtual const uint8_t decodeR(const opcode_t opcode) {
 			switch (opcode & 0x07) {
@@ -216,6 +239,7 @@ namespace xprocessors {
 		void push(const uint16_t value) {
 			_state.sp() -= 2;
 			write16(_state.sp(), value);
+			_elapsed_cycles += Cost::EXTRAPUSH;
 		}
 	};
 }

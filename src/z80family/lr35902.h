@@ -19,7 +19,11 @@ namespace xprocessors {
 		static const uint8_t READ_MEMORY16 = 8;
 		static const uint8_t WRITE_MEMORY8 = 4;
 		static const uint8_t WRITE_MEMORY16 = 8;
+		static const uint8_t READ_WRITE_R = 0;
 		static const uint8_t WRITE_PC = 4;
+		static const uint8_t EXTRAPUSH = 0;
+		static const uint8_t EXTRARETCALL = 0;
+		static const uint8_t EXTRAHALT = 0;
 	};
 
 
@@ -36,20 +40,22 @@ namespace xprocessors {
 		uint8_t auxCarryBit : 1; // auxiliary carry bit
 		uint8_t parityBit : 1; // parity bit
 
+		void add(const uint8_t) override;
+		void adc(const uint8_t) override;
+		void sub(const uint8_t) override;
+		void sbc(const uint8_t) override;
+		void ana(const uint8_t) override;
+		void ora(const uint8_t) override;
+		void xra(const uint8_t) override;
+		void cmp(const uint8_t) override;
+
+		uint8_t dec(const uint8_t) override;
+		uint8_t inc(const uint8_t) override;
+
 	public:
 
 		uint8_t get_m() const;
 
-		uint8_t dcr(const uint8_t);
-		uint8_t inr(const uint8_t);
-		void xra(const uint8_t);
-		void ana(const uint8_t);
-		void ora(const uint8_t);
-		void sub(const uint8_t, const uint8_t = 0);
-		void sbb(const uint8_t);
-		void add(const uint8_t, const uint8_t = 0);
-		void adc(const uint8_t);
-		void cmp(const uint8_t);
 		void daa();
 		void dad(const uint16_t);
 

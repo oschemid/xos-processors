@@ -20,7 +20,11 @@ namespace xprocessors {
 		static const uint8_t READ_MEMORY16 = 6;
 		static const uint8_t WRITE_MEMORY8 = 3;
 		static const uint8_t WRITE_MEMORY16 = 6;
+		static const uint8_t READ_WRITE_R = 1;
 		static const uint8_t WRITE_PC = 0;
+		static const uint8_t EXTRAPUSH = 1;
+		static const uint8_t EXTRARETCALL = 1;
+		static const uint8_t EXTRAHALT = 3;
 	};
 
 	class Intel8080State : public Z80FamilyState<Intel8080Flags> {
@@ -33,22 +37,22 @@ namespace xprocessors {
 		uint8_t interrupt_enabled; // 0 ok, 1 wait one, 2 no
 		uint8_t interrupt_request;
 
-		//		uint8_t auxCarryBit : 1; // auxiliary carry bit
+		void add(const uint8_t) override;
+		void adc(const uint8_t) override;
+		void sub(const uint8_t) override;
+		void sbc(const uint8_t) override;
+		void ora(const uint8_t) override;
+		void xra(const uint8_t) override;
+		void ana(const uint8_t) override;
+		void cmp(const uint8_t) override;
+
+		uint8_t dec(const uint8_t) override;
+		uint8_t inc(const uint8_t) override;
 
 	public:
 
 		uint8_t get_m() const;
 
-		uint8_t dcr(const uint8_t);
-		uint8_t inr(const uint8_t);
-		void xra(const uint8_t);
-		void ana(const uint8_t);
-		void ora(const uint8_t);
-		void sub(const uint8_t, const uint8_t = 0);
-		void sbb(const uint8_t);
-		void add(const uint8_t, const uint8_t = 0);
-		void adc(const uint8_t);
-		void cmp(const uint8_t);
 		void daa();
 		void dad(const uint16_t);
 
