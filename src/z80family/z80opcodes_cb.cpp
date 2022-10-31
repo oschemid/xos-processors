@@ -122,12 +122,18 @@ void Z80::decode_opcode_cb(const prefix p) {
 		bit(decodeR(opcode), (opcode & 0b00111000) >> 3);
 		break;
 	case opcode::BIT_HL:
-		if (p == DD)
+		if (p == DD) {
 			bit(read8(_state.ix() + delta), (opcode & 0b00111000) >> 3);
-		else if (p == FD)
-			bit(read8(_state.ix() + delta), (opcode & 0b00111000) >> 3);
-		else
+			_elapsed_cycles += 2;
+		}
+		else if (p == FD) {
+			bit(read8(_state.iy() + delta), (opcode & 0b00111000) >> 3);
+			_elapsed_cycles += 2;
+		}
+		else {
 			bit(read8(_state.hl()), (opcode & 0b00111000) >> 3);
+			_elapsed_cycles++;
+		}
 		break;
 	case opcode::SET_R:
 		apply_ixy_r([this, opcode](const uint8_t r) { return r | (1 << ((opcode & 0b00111000) >> 3)); }, opcode, p, delta);

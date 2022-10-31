@@ -196,38 +196,31 @@ void Z80::decode_opcode_ed() {
 			break;
 		case opcode::CPD:
 			cpd();
-			_elapsed_cycles += 4;
 			break;
 		case opcode::CPDR:
 			cpd();
-			if ((_state.f() & (flags::parityFlag | flags::zeroFlag)) == 0) {
-
-				//		_elapsed_cycles += 4;
-				//		if ((!_state.zeroFlag()) && (_state.bc() = !0)) {
+			if ((!_state.zeroFlag()) && (_state.bc() != 0)) {
 				_state.pc() -= 2;
-				//			_elapsed_cycles += 5;
+				_elapsed_cycles += 5;
 			}
 			break;
 		case opcode::CPI:
 			cpi();
-			_elapsed_cycles += 4;
 			break;
 		case opcode::CPIR:
 			cpi();
-			if ((_state.f() & (flags::parityFlag | flags::zeroFlag)) == 0) {
-				//		_elapsed_cycles += 4;
-				//		if ((!_state.zeroFlag()) && (_state.bc() = !0)) {
+			if ((!_state.zeroFlag()) && (_state.bc() != 0)) {
 				_state.pc() -= 2;
-				//			_elapsed_cycles += 5;
+				_elapsed_cycles += 5;
 			}
 			break;
 		case opcode::LDD:
 			ldd();
-			_elapsed_cycles++;
+			_elapsed_cycles += 2;
 			break;
 		case opcode::LDDR:
 			ldd();
-			_elapsed_cycles++;
+			_elapsed_cycles += 2;
 			if (_state.bc() != 0) {
 				_state.pc() -= 2;
 				_elapsed_cycles += 5;
@@ -235,11 +228,11 @@ void Z80::decode_opcode_ed() {
 			break;
 		case opcode::LDI:
 			ldi();
-			_elapsed_cycles++;
+			_elapsed_cycles += 2;
 			break;
 		case opcode::LDIR:
 			ldi();
-			_elapsed_cycles++;
+			_elapsed_cycles += 2;
 			if (_state.bc() != 0) {
 				_state.pc() -= 2;
 				_elapsed_cycles += 5;
@@ -325,7 +318,7 @@ void Z80::rrd() {
 	uint8_t mem = read8(_state.hl());
 	_state.a() = (_state.a() & 0xf0) | (mem & 0x0f);
 	write8(_state.hl(), static_cast<uint8_t>((mem >> 4) | (tmp << 4)));
-	_elapsed_cycles += 3; // write on HL bis
+	_elapsed_cycles += 4; // write on HL bis
 
 	_state.f() &= Z80State::CF;
 	_state.setSZXY(_state.a());
@@ -337,7 +330,7 @@ void Z80::rld() {
 	uint8_t mem = read8(_state.hl());
 	_state.a() = (_state.a() & 0xf0) | (mem >> 4);
 	write8(_state.hl(), static_cast<uint8_t>((mem << 4) | tmp));
-	_elapsed_cycles += 3; // write on HL bis
+	_elapsed_cycles += 4; // write on HL bis
 
 	_state.f() &= Z80State::CF;
 	_state.setSZXY(_state.a());
@@ -390,52 +383,36 @@ void Z80::neg() {
 		_state.setFlags(Z80State::HF);
 }
 void Z80::cpd() {
-	uint8_t m = read8(_state.hl());
-
-	//	const uint8_t value = read8(_state.hl());
-	//	const uint16_t sum = _state.a() - value;
-	//	const uint16_t carryIns = (sum ^ _state.a() ^ value);
-
-	_state.setFlags(Z80State::NF);
-	_state.resetFlags(Z80State::SF | Z80State::ZF | Z80State::HF | Z80State::PF);
-	if (_state.a() < m)
-		_state.setFlags(Z80State::SF);
-	if (_state.a() == m)
-
-		//	if ((sum & 0xff) == 0)
-		_state.setFlags(Z80State::ZF);
-	//	else
-	//		_state.setFlags(sum & Z80State::SF);
-	//	if (carryIns & 0x10)
-	//		_state.setFlags(Z80State::HF);
-	uint16_t carryIns = ((_state.a() - m) ^ _state.a() ^ m);
-	if ((carryIns >> 4) & 0x1)
-		_state.setFlags(Z80State::HF);
+	bool carryFlag = _state.carryFlag();
+	cmp(read8(_state.hl()));
+	if (carryFlag)
+		_state.setFlags(Z80State::CF);
+	else
+		_state.resetFlags(Z80State::CF);
 
 	--_state.hl();
 	--_state.bc();
-	//	if (_state.bc() != 0)
-	if (_state.bc() == 0)
+	if (_state.bc() != 0)
 		_state.setFlags(Z80State::PF);
+	else
+		_state.resetFlags(Z80State::PF);
+	_elapsed_cycles += 5;
 }
 void Z80::cpi() {
-	uint8_t m = read8(_state.hl());
-
-	_state.setFlags(Z80State::NF);
-	_state.resetFlags(Z80State::SF | Z80State::ZF | Z80State::HF | Z80State::PF);
-	if (_state.a() < m)
-		_state.setFlags(Z80State::SF);
-	if (_state.a() == m)
-		_state.setFlags(Z80State::ZF);
-	uint16_t carryIns = ((_state.a() - m) ^ _state.a() ^ m);
-	if ((carryIns >> 4) & 0x1)
-		_state.setFlags(Z80State::HF);
+	bool carryFlag = _state.carryFlag();
+	cmp(read8(_state.hl()));
+	if (carryFlag)
+		_state.setFlags(Z80State::CF);
+	else
+		_state.resetFlags(Z80State::CF);
 
 	++_state.hl();
 	--_state.bc();
-	if (_state.bc() == 0)
-		//	if (_state.bc() != 0)
+	if (_state.bc() != 0)
 		_state.setFlags(Z80State::PF);
+	else
+		_state.resetFlags(Z80State::PF);
+	_elapsed_cycles += 5;
 }
 void Z80::ldd() {
 	write8(de(), read8(_state.hl()));
@@ -490,7 +467,7 @@ void Z80::outi() {
 	--_state.b();
 	_state.setSZXY(_state.b());
 	_state.setFlags(Z80State::NF);
-	_elapsed_cycles += 4;
+	_elapsed_cycles += 5;
 }
 void Z80::outd() {
 	_handlerOut(_state.c(), read8(_state.hl()));
@@ -498,5 +475,5 @@ void Z80::outd() {
 	--_state.b();
 	_state.setSZXY(_state.b());
 	_state.setFlags(Z80State::NF);
-	_elapsed_cycles += 4;
+	_elapsed_cycles += 5;
 }

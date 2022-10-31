@@ -20,9 +20,11 @@ namespace xprocessors {
 		static const uint8_t WRITE_MEMORY8 = 4;
 		static const uint8_t WRITE_MEMORY16 = 8;
 		static const uint8_t READ_WRITE_R = 0;
+		static const uint8_t READ_WRITE_RR = 0;
 		static const uint8_t WRITE_PC = 4;
 		static const uint8_t EXTRAPUSH = 0;
-		static const uint8_t EXTRARETCALL = 0;
+		static const uint8_t EXTRARET = 0;
+		static const uint8_t EXTRACALL = 0;
 		static const uint8_t EXTRAHALT = 0;
 	};
 

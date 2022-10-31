@@ -159,7 +159,7 @@
 		break; \
 	case opcodes::RET_CC: \
 		ret(checkCC(opcode)); \
-		_elapsed_cycles += Cost::EXTRARETCALL; \
+		_elapsed_cycles += Cost::EXTRARET; \
 		break; \
 	case opcodes::LD_R_N: \
 		decodeR(opcode >> 3, readArgument8()); \
@@ -232,10 +232,10 @@
 		break; \
 	case opcodes::INC_RR: \
 		decodeRR(opcode, decodeRR(opcode) + 1); \
-		_elapsed_cycles += Cost::READ_WRITE_R; \
+		_elapsed_cycles += Cost::READ_WRITE_RR; \
 		break; \
 	case opcodes::DEC_RR: \
 		decodeRR(opcode, decodeRR(opcode) - 1); \
-		_elapsed_cycles += Cost::READ_WRITE_R; \
+		_elapsed_cycles += Cost::READ_WRITE_RR; \
 		break; \
 	}

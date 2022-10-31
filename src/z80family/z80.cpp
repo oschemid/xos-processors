@@ -25,12 +25,15 @@ namespace xprocessors {
 		switch (p) {
 		case NO:
 			write8(_state.hl(), fn(read8(_state.hl())));
+			_elapsed_cycles++;
 			break;
 		case DD:
 			write8(_state.ix() + d, fn(read8(_state.ix() + d)));
+			_elapsed_cycles += 2;
 			break;
 		case FD:
 			write8(_state.iy() + d, fn(read8(_state.iy() + d)));
+			_elapsed_cycles += 2;
 			break;
 		}
 	}
@@ -47,26 +50,17 @@ namespace xprocessors {
 		case DD:
 			decodeR(opcode, fn(read8(_state.ix() + d)));
 			write8(_state.ix() + d, decodeR(opcode));
+			_elapsed_cycles += 2;
 			break;
 		case FD:
 			decodeR(opcode, fn(read8(_state.iy() + d)));
 			write8(_state.iy() + d, decodeR(opcode));
+			_elapsed_cycles += 2;
 			break;
 		}
 	}
 
 	/******************************************************************************/
-	//const uint16_t Z80::popOfStack()
-	//{
-	//	uint16_t value = read16(_state.sp());
-	//	_state.sp() += 2;
-	//	return value;
-	//}
-	//void Z80::pushToStack(const uint16_t value)
-	//{
-	//	_state.sp() -= 2;
-	//	write16(_state.sp(), value);
-	//}
 	void Z80::unimplemented()
 	{
 		_state.pc()--;

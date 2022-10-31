@@ -52,7 +52,7 @@ namespace xprocessors {
 				_elapsed_cycles += Cost::WRITE_PC;
 			}
 			else
-				_elapsed_cycles += Cost::EXTRARETCALL;
+				_elapsed_cycles += Cost::EXTRACALL;
 		}
 		void ret(const bool condition = true) {
 			if (condition) {
@@ -207,6 +207,7 @@ namespace xprocessors {
 		}
 		virtual bool reset(const uint16_t = 0) override {
 			_halted = false;
+			_executed_instructions = 0;
 			_state.reset();
 			return true;
 		}

@@ -221,6 +221,7 @@ void Z80::decode_opcode(const uint8_t opcode) {
 		iff1_waiting = true;
 		break;
 	case opcode::DECODE_CB:
+		_executed_instructions--;
 		decode_opcode_cb(current_prefix);
 		break;
 	case opcode::DECODE_DD:
@@ -228,11 +229,13 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			unimplemented();
 		else {
 			current_prefix = DD;
+			_executed_instructions--;
 			decode_opcode(readOpcode());
 			current_prefix = NO;
 		}
 		break;
 	case opcode::DECODE_ED:
+		_executed_instructions--;
 		decode_opcode_ed();
 		break;
 	case opcode::DECODE_FD:
@@ -240,16 +243,27 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			unimplemented();
 		else {
 			current_prefix = FD;
+			_executed_instructions--;
 			decode_opcode(readOpcode());
 			current_prefix = NO;
 		}
 		break;
 	case opcode::LD_HL_R:
-		apply_hl([this, opcode](const uint8_t) { prefix tmp = current_prefix; current_prefix = NO; uint8_t t = decodeR(opcode); current_prefix = tmp; return t; }, current_prefix, (current_prefix != NO) ? readArgument8() : 0);
-		if (current_prefix == NO)
-			_elapsed_cycles -= 3;
-		else
-			_elapsed_cycles += 2;
+		if (current_prefix == NO) {
+			write8(_state.hl(), decodeR(opcode));
+		}
+		else if (current_prefix == DD) {
+			current_prefix = NO;
+			write8(_state.ix() + static_cast<int8_t>(readArgument8()), decodeR(opcode));
+			current_prefix = DD;
+			_elapsed_cycles += 5;
+		}
+		else if (current_prefix == FD) {
+			current_prefix = NO;
+			write8(_state.iy() + static_cast<int8_t>(readArgument8()), decodeR(opcode));
+			current_prefix = FD;
+			_elapsed_cycles += 5;
+		}
 		break;
 	case opcode::LD_R_HL:
 		if (current_prefix == NO) {
@@ -271,8 +285,19 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::LD_HL_N:
 	{
 		int8_t delta = (current_prefix != NO) ? readArgument8() : 0;
-		apply_hl([this](const uint8_t) { return readArgument8(); }, current_prefix, delta);
-		_elapsed_cycles -= 4;
+		//apply_hl([this](const uint8_t) { return readArgument8(); }, current_prefix, delta);
+
+		if (current_prefix == NO) {
+			write8(_state.hl(), readArgument8());
+		}
+		else if (current_prefix == DD) {
+			write8(_state.ix() + delta, readArgument8());
+			_elapsed_cycles += 2;
+		}
+		else if (current_prefix == FD) {
+			write8(_state.iy() + delta, readArgument8());
+			_elapsed_cycles += 2;
+		}
 	}
 	break;
 	case opcode::LD_SP_HL:
@@ -282,7 +307,7 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_state.sp() = _state.ix();
 		else
 			_state.sp() = _state.iy();
-		_elapsed_cycles += 2;
+		_elapsed_cycles += Cost::READ_WRITE_RR;
 		break;
 	case opcode::LD_A_BC:
 		_state.a() = read8(_state.bc());
@@ -322,11 +347,11 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::ADD_HL:
 		if (current_prefix == DD) {
 			add(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			add(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			add(read8(_state.hl()));
@@ -335,11 +360,11 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::ADC_HL:
 		if (current_prefix == DD) {
 			adc(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			adc(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			adc(read8(_state.hl()));
@@ -348,85 +373,79 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::SUB_HL:
 		if (current_prefix == DD) {
 			sub(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			sub(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			sub(read8(_state.hl()));
-			_elapsed_cycles--;
 		}
 		break;
 	case opcode::SBC_HL:
 		if (current_prefix == DD) {
 			sbc(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			sbc(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			sbc(read8(_state.hl()));
-			_elapsed_cycles--;
 		}
 		break;
 	case opcode::AND_HL:
 		if (current_prefix == DD) {
 			ana(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			ana(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			ana(read8(_state.hl()));
-			_elapsed_cycles--;
 		}
 		break;
 	case opcode::XOR_HL:
 		if (current_prefix == DD) {
 			xra(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			xra(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			xra(read8(_state.hl()));
-			_elapsed_cycles--;
 		}
 		break;
 	case opcode::OR_HL:
 		if (current_prefix == DD) {
 			ora(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == FD) {
 			ora(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			ora(read8(_state.hl()));
-			_elapsed_cycles--;
 		}
 		break;
 	case opcode::CP_HL:
 		if (current_prefix == DD) {
 			cmp(read8(_state.ix() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else if (current_prefix == 2) {
 			cmp(read8(_state.iy() + static_cast<signed char>(readArgument8())));
-			_elapsed_cycles += 3;
+			_elapsed_cycles += 5;
 		}
 		else {
 			cmp(read8(_state.hl()));
-			_elapsed_cycles--;
 		}
 		break;
 	case opcode::DAA:
@@ -500,39 +519,36 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::JR:
 		tmp8 = readArgument8();
 		_state.pc() = _state.pc() + static_cast<signed char>(tmp8);
-		_elapsed_cycles += 4;
+		_elapsed_cycles += 5;
 		break;
 	case opcode::JR_C:
 		tmp8 = readArgument8();
 		if (checkCondition2(opcode)) {
 			_state.pc() = _state.pc() + static_cast<signed char>(tmp8);
-			_elapsed_cycles += 4;
-		}
-		else {
-			_elapsed_cycles--;
+			_elapsed_cycles += 5;
 		}
 		break;
 	case opcode::DJNZ:
 		tmp8 = readArgument8();
 		if (--_state.b() == 0) {
+			_elapsed_cycles++;
 		}
 		else {
 			_state.pc() = _state.pc() + static_cast<signed char>(tmp8);
-			_elapsed_cycles += 5;
+			_elapsed_cycles += 6;
 		}
 		break;
 	case opcode::RST:
 		push(_state.pc());
 		_state.pc() = opcode - 0xc7;
-		_elapsed_cycles++;
 		break;
 	case opcode::IN_N:
 		_state.a() = _handlerIn(readArgument8());
-		_elapsed_cycles += 3;
+		_elapsed_cycles += 4;
 		break;
 	case opcode::OUT_N:
 		_handlerOut(readArgument8(), _state.a());
-		_elapsed_cycles += 3;
+		_elapsed_cycles += 4;
 		break;
 	default:
 		COMMON_OPCODES_DECODING(opcode, opcodes, opcode)

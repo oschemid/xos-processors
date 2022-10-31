@@ -132,7 +132,7 @@ bool tests::z80_tests::runTest(const string& filename, const uint64_t cycles_exp
 		cycles += cpu->executeOne();
 	}
 	if (cycles_expected > 0)
-		std::cout << std::endl << "Expected cycles : " << cycles_expected << " - Cycles : " << cpu->elapsed_cycles();
+		std::cout << std::endl << "Expected cycles : " << cycles_expected << " - Cycles : " << cpu->elapsed_cycles() << "(" << cpu->executed_instructions() << " instructions)";
 	return true;
 }
 
