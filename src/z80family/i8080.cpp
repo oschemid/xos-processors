@@ -146,11 +146,10 @@ namespace xprocessors {
 		_state.adjustSZ(_state.a());
 		_state.setParityFlag(parity(_state.a()));
 	}
-	void Intel8080::dad(const uint16_t value)
+	void Intel8080::add_hl(const uint16_t value)
 	{
 		uint32_t res = _state.hl() + value;
-		_state.h() = res >> 8;
-		_state.l() = res & 0xff;
+		_state.hl() = res & 0xffff;
 		if ((res & 0xffff0000) != 0)
 			_state.setFlags(Intel8080Flags::CF);
 		else
@@ -198,21 +197,12 @@ namespace xprocessors {
 		}
 
 		switch (opcode) {
-		case 0x02: /* STAX B */
-			write8(_state.bc(), _state.a());
-			break;
 		case 0x07: /* RLC */
 			if (_state.a() >> 7)
 				_state.setFlags(Intel8080Flags::CF);
 			else
 				_state.resetFlags(Intel8080Flags::CF);
 			_state.a() = (_state.carryFlag() ? 1 : 0) | (_state.a() << 1);
-			break;
-		case 0x09: /* DAD BC */
-			dad(_state.bc());
-			break;
-		case 0x0A: /* LDAX B */
-			_state.a() = read8(_state.bc());
 			break;
 		case 0x0F: /* RRC */
 			if (_state.a() & 1)
@@ -222,9 +212,6 @@ namespace xprocessors {
 			_state.a() = (_state.carryFlag() ? 0x80 : 0) | (_state.a() >> 1);
 			break;
 
-		case 0x12: /* STAX D */
-			write8(_state.de(), _state.a());
-			break;
 		case 0x17: /* RAL */
 		{
 			uint8_t flag = (_state.carryFlag()) ? 1 : 0;
@@ -236,12 +223,6 @@ namespace xprocessors {
 			_state.a() = (_state.a() << 1) | (flag);
 		}
 		break;
-		case 0x19: /* DAD D */
-			dad(_state.de());
-			break;
-		case 0x1A: /* LDAX D */
-			_state.a() = read8(_state.de());
-			break;
 		case 0x1F: /* RAR */
 		{
 			uint8_t flag = (_state.carryFlag()) ? 1 : 0;
@@ -258,9 +239,6 @@ namespace xprocessors {
 		case 0x27: /* DAA */
 			daa();
 			break;
-		case 0x29: /* DAD H */
-			dad(_state.hl());
-			break;
 		case 0x2A: /* LHLD */
 			_state.hl() = read16(readArgument16());
 			break;
@@ -273,9 +251,6 @@ namespace xprocessors {
 			break;
 		case 0x37: /* STC */
 			_state.setFlags(Intel8080Flags::CF);
-			break;
-		case 0x39: /* DAD SP */
-			dad(_state.sp());
 			break;
 		case 0x3A: /* LDA */
 			_state.a() = read8(readArgument16());

@@ -1,63 +1,18 @@
 #include "z80.h"
 #include "types.h"
-#include <array>
+#include "opcodes_cb.h"
 
 
 enum class opcode {
 	UNIMPLEMENTED,
-	RLC_R,
-	RLC_HL,
-	RL_R,
-	RL_HL,
-	RRC_R,
-	RRC_HL,
-	RR_R,
-	RR_HL,
-	BIT_R,
-	BIT_HL,
-	SET_R,
-	SET_HL,
-	RES_R,
-	RES_HL,
-	SRL_R,
-	SRL_HL,
-	SRA_R,
-	SRA_HL,
-	SLA_R,
-	SLA_HL,
-	SLL_R,
-	SLL_HL
+	COMMON_OPCODES_CB
 };
 
 
 /*********************************************************************************************************************/
 // opcodes table
 constexpr auto opcodes{ []() constexpr {
-	std::array<opcode,256> result{opcode::UNIMPLEMENTED};
-	for (int i = 0; i < 256; ++i) {
-		if ((i & 0b11111000) == 0b00000000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::RLC_HL : opcode::RLC_R;
-		if ((i & 0b11111000) == 0b00010000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::RL_HL : opcode::RL_R;
-		if ((i & 0b11111000) == 0b00001000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::RRC_HL : opcode::RRC_R;
-		if ((i & 0b11111000) == 0b00011000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::RR_HL : opcode::RR_R;
-		if ((i & 0b11111000) == 0b00100000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SLA_HL : opcode::SLA_R;
-		if ((i & 0b11111000) == 0b00101000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SRA_HL : opcode::SRA_R;
-		if ((i & 0b11111000) == 0b00110000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SLL_HL : opcode::SLL_R;
-		if ((i & 0b11111000) == 0b00111000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SRL_HL : opcode::SRL_R;
-		if ((i & 0b11000000) == 0b01000000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::BIT_HL : opcode::BIT_R;
-		if ((i & 0b11000000) == 0b11000000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::SET_HL : opcode::SET_R;
-		if ((i & 0b11000000) == 0b10000000)
-			result[i] = ((i & 0x07) == 0x06) ? opcode::RES_HL : opcode::RES_R;
-	}
+	COMMON_OPCODES_TABLE_CB(opcode, result)
 	return result;
 }()
 };

@@ -425,6 +425,7 @@ namespace xprocessors {
 		void xra(const uint8_t) override;
 		void ana(const uint8_t) override;
 		void cmp(const uint8_t) override;
+		void add_hl(const uint16_t) override;
 
 		uint8_t inc(const uint8_t) override;
 		uint8_t dec(const uint8_t) override;
@@ -433,7 +434,6 @@ namespace xprocessors {
 		void rla(const bool);
 		void rra(const bool);
 		void daa();
-		void add_ss(const opcode_t, const prefix);
 		void exchange_de_hl();
 		uint16_t exchange_sp(const uint16_t);
 
@@ -467,9 +467,6 @@ namespace xprocessors {
 
 		void unimplemented();
 		void illegal();
-
-		//void pushToStack(const uint16_t);
-		//const uint16_t popOfStack();
 
 		Z80();
 

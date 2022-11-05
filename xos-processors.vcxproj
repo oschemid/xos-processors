@@ -157,6 +157,7 @@
     <ClInclude Include="src\z80family\i8080.h" />
     <ClInclude Include="src\z80family\lr35902.h" />
     <ClInclude Include="src\z80family\opcodes.h" />
+    <ClInclude Include="src\z80family\opcodes_cb.h" />
     <ClInclude Include="src\z80family\states.h" />
     <ClInclude Include="src\z80family\z80.h" />
     <ClInclude Include="tests\cpu_tests.h" />

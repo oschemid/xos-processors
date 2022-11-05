@@ -10,11 +10,11 @@ int main()
 		t.run();
 	}
 	{
-		auto t = tests::lr35902_tests::lr35902_tests();
+		auto t = tests::z80_tests::z80_tests();
 		t.run();
 	}
 	{
-		auto t = tests::z80_tests::z80_tests();
+		auto t = tests::lr35902_tests::lr35902_tests();
 		t.run();
 	}
 }

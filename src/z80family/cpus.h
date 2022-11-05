@@ -69,6 +69,7 @@ namespace xprocessors {
 		virtual void xra(const uint8_t) = 0;
 		virtual void ana(const uint8_t) = 0;
 		virtual void cmp(const uint8_t) = 0;
+		virtual void add_hl(const uint16_t) = 0;
 
 		virtual uint8_t inc(const uint8_t) = 0;
 		virtual uint8_t dec(const uint8_t) = 0;
@@ -179,7 +180,7 @@ namespace xprocessors {
 			}
 		}
 
-		bool checkCC(const opcode_t opcode) const
+		virtual bool checkCC(const opcode_t opcode) const
 		{
 			switch (opcode & 0b00111000) {
 			case 0b00000000:

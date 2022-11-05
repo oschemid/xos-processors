@@ -47,6 +47,7 @@ namespace xprocessors {
 		void xra(const uint8_t) override;
 		void ana(const uint8_t) override;
 		void cmp(const uint8_t) override;
+		void add_hl(const uint16_t) override;
 
 		uint8_t dec(const uint8_t) override;
 		uint8_t inc(const uint8_t) override;
@@ -56,7 +57,7 @@ namespace xprocessors {
 		uint8_t get_m() const;
 
 		void daa();
-		void dad(const uint16_t);
+		//		void dad(const uint16_t);
 
 		void decode_opcode(const uint8_t);
 

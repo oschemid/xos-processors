@@ -95,5 +95,8 @@
     <ClInclude Include="tests\lr35902_tests.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
+    <ClInclude Include="src\z80family\opcodes_cb.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

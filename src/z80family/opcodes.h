@@ -17,8 +17,13 @@
 	LD_R_R, \
 	LD_R_N, \
 	LD_RR_NN, \
+	LD_BC_A, \
+	LD_DE_A, \
+	LD_A_BC, \
+	LD_A_DE, \
 	ADD_R, \
 	ADD_N, \
+	ADD_HL_RR, \
 	ADC_R, \
 	ADC_N, \
 	SUB_R, \
@@ -48,6 +53,17 @@
 		/* 0x00aaa001*/ \
 		if ((i & 0b11001111) == 0b00000001) \
 			table[i] = opcodes::LD_RR_NN; \
+		if ((i & 0b11001111) == 0b00001001) \
+			table[i] = opcodes::ADD_HL_RR; \
+		/* 0x00aaa010*/ \
+		if (i == 0b00000010) \
+			table[i] = opcodes::LD_BC_A; \
+		if (i == 0b00010010) \
+			table[i] = opcodes::LD_DE_A; \
+		if (i == 0b00001010) \
+			table[i] = opcodes::LD_A_BC; \
+		if (i == 0b00011010) \
+			table[i] = opcodes::LD_A_DE; \
 		/* 0x00aaa011*/ \
 		if ((i & 0b11001111) == 0b00000011) \
 			table[i] = opcodes::INC_RR; \
@@ -171,6 +187,21 @@
 		break; \
 	case opcodes::LD_RR_NN: \
 		decodeRR(opcode, readArgument16()); \
+		break; \
+	case opcodes::ADD_HL_RR: \
+		add_hl(decodeRR(opcode)); \
+		break; \
+	case opcodes::LD_BC_A: \
+		write8(_state.bc(), _state.a()); \
+		break; \
+	case opcodes::LD_DE_A: \
+		write8(_state.de(), _state.a()); \
+		break; \
+	case opcodes::LD_A_BC: \
+		_state.a() = read8(_state.bc()); \
+		break; \
+	case opcodes::LD_A_DE: \
+		_state.a() = read8(_state.de()); \
 		break; \
 	case opcodes::ADD_R: \
 		add(decodeR(opcode)); \

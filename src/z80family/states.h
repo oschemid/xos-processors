@@ -54,13 +54,18 @@ namespace xprocessors {
 		bool zeroFlag() const { return (_f & F::ZF) ? true : false; }
 		void setZeroFlag(const bool v) { setFlag(F::ZF, v); }
 		bool halfCarryFlag() const { return (_f & F::HF) ? true : false; }
+		void setHalfCarryFlag(const bool v) { setFlag(F::HF, v); }
 		bool addSubFlag() const { return (_f & F::NF) ? true : false; }
+		void setAddSubFlag(const bool v) { setFlag(F::NF, v); }
 
 		void setFlag(const uint8_t flag, const bool value) {
 			value ? _f |= flag : _f &= ~flag;
 		}
-		void adjustSZ(const uint8_t value) {
+		void adjustZ(const uint8_t value) {
 			setFlag(F::ZF, value == 0);
+		}
+		void adjustSZ(const uint8_t value) {
+			adjustZ(value);
 			setFlag(F::SF, value >= 0x80);
 		}
 		void resetFlags(const uint8_t flags) { _f &= ~flags; }

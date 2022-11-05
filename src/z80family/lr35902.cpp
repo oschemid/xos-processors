@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include "../registry.h"
 #include "opcodes.h"
+#include "opcodes_cb.h"
 
 
 /*********************************************************************************************************************/
@@ -17,7 +18,8 @@ static xprocessors::CpuRegistryHandler reg("lr35902", xprocessors::LR35902::crea
 /*********************************************************************************************************************/
 // OPCODES
 enum class opcodes {
-	COMMON_OPCODES
+	COMMON_OPCODES,
+	COMMON_OPCODES_CB
 };
 
 
@@ -27,10 +29,6 @@ constexpr auto opcode_tables{ []() constexpr {
 	COMMON_OPCODES_TABLE(opcodes, result)
 
 	for (int i = 0; i < 256; ++i) {
-		if ((i & 0b11000111) == 0b00000100)
-			result[i] = opcodes::INC_R;
-		if ((i & 0b11000111) == 0b00000101)
-			result[i] = opcodes::DEC_R;
 		// Change common opcodes
 		if (i == 0xE0)
 			result[i] = opcodes::UNIMPLEMENTED;
@@ -61,6 +59,13 @@ constexpr auto opcode_tables{ []() constexpr {
 }()
 };
 
+constexpr auto opcode_cb_tables{ []() constexpr {
+	COMMON_OPCODES_TABLE_CB(opcodes, result)
+
+	return result;
+}()
+};
+
 
 
 namespace xprocessors {
@@ -68,117 +73,174 @@ namespace xprocessors {
 		Z80FamilyCpu() {
 		reset();
 	}
+	bool LR35902::checkCC(const opcode_t opcode) const
+	{
+		switch (opcode & 0b00111000) {
+		case 0b00000000:
+			return !_state.zeroFlag();
+		case 0b00001000:
+			return _state.zeroFlag();
+		case 0b00010000:
+			return !_state.carryFlag();
+		case 0b00011000:
+			return _state.carryFlag();
+		}
+	}
 	uint8_t LR35902::get_m() const {
 		return _handlerRead(_state.hl());
 	}
 
 	uint8_t LR35902::dec(const uint8_t value) {
 		uint8_t result = value - 1;
-		_state.adjustSZ(result);
-		parityBit = parity(result);
-		auxCarryBit = !((result & 0x0f) == 0x0f);
+		_state.adjustZ(result);
+		_state.setFlags(LR35902Flags::NF);
+		_state.setFlag(LR35902Flags::HF, (result & 0x0f) == 0x0f);
 		return result;
 	}
 	uint8_t LR35902::inc(const uint8_t value) {
 		uint8_t result = value + 1;
-		_state.adjustSZ(result);
-		parityBit = parity(result);
-		auxCarryBit = (result & 0x0f) == 0;
+		_state.adjustZ(result);
+		_state.resetFlags(LR35902Flags::NF);
+		_state.setFlag(LR35902Flags::HF, (result & 0x0f) == 0);
 		return result;
 	}
 
 	void LR35902::xra(const uint8_t value) {
 		_state.a() ^= value;
-		_state.resetFlags(LR35902Flags::CF);
-		auxCarryBit = 0;
-		parityBit = parity(_state.a());
-		_state.adjustSZ(_state.a());
+		_state.resetFlags(LR35902Flags::CF | LR35902Flags::NF | LR35902Flags::HF);
+		_state.adjustZ(_state.a());
 	}
 	void LR35902::ora(const uint8_t value) {
 		_state.a() |= value;
-		_state.resetFlags(LR35902Flags::CF);
-		auxCarryBit = 0;
-		parityBit = parity(_state.a());
-		_state.adjustSZ(_state.a());
+		_state.resetFlags(LR35902Flags::CF | LR35902Flags::NF | LR35902Flags::HF);
+		_state.adjustZ(_state.a());
 	}
 	void LR35902::ana(const uint8_t value) {
-		uint8_t result = _state.a() & value;
-		_state.resetFlags(LR35902Flags::CF);
-		parityBit = parity(result);
-		_state.adjustSZ(result);
-		auxCarryBit = ((_state.a() | value) & 0x08) != 0;
-		_state.a() = result;
+		_state.a() &= value;
+		_state.resetFlags(LR35902Flags::CF | LR35902Flags::NF);
+		_state.setFlags(LR35902Flags::HF);
+		_state.adjustZ(_state.a());
 	}
 	void LR35902::sub(const uint8_t value) {
-		if (value > _state.a())
+		const uint16_t sum = _state.a() - value;
+		const uint16_t carryIns = (sum ^ _state.a() ^ value);
+
+		_state.a() = sum & 0xff;
+
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::CF);
+		_state.setFlags(LR35902Flags::NF);
+		_state.adjustZ(_state.a());
+		if (carryIns & 0x10)
+			_state.setFlags(LR35902Flags::HF);
+
+		if ((carryIns >> 8) & 0x1)
 			_state.setFlags(LR35902Flags::CF);
-		else
-			_state.resetFlags(LR35902Flags::CF);
-		auxCarryBit = (_state.a() & 0x0f) - (value & 0x0f) >= 0;
-		_state.a() -= value;
-		_state.adjustSZ(_state.a());
-		parityBit = parity(_state.a());
 	}
 	void LR35902::sbc(const uint8_t value) {
 		const uint8_t flag = _state.carryFlag() ? 1 : 0;
-		if (value + flag > _state.a())
+		const uint16_t sum = _state.a() - value - flag;
+		const uint16_t carryIns = (sum ^ _state.a() ^ value);
+
+		_state.a() = sum & 0xff;
+
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::CF);
+		_state.setFlags(LR35902Flags::NF);
+		_state.adjustZ(_state.a());
+		if (carryIns & 0x10)
+			_state.setFlags(LR35902Flags::HF);
+
+		if ((carryIns >> 8) & 0x1)
 			_state.setFlags(LR35902Flags::CF);
-		else
-			_state.resetFlags(LR35902Flags::CF);
-		auxCarryBit = (_state.a() & 0x0f) - (value & 0x0f) - flag >= 0;
-		_state.a() -= value + flag;
-		_state.adjustSZ(_state.a());
-		parityBit = parity(_state.a());
 	}
 	void LR35902::cmp(const uint8_t value) {
-		if (value > _state.a())
+		const uint16_t sum = _state.a() - value;
+		const uint16_t carryIns = (sum ^ _state.a() ^ value);
+
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::CF);
+		_state.setFlags(LR35902Flags::NF);
+		_state.adjustZ(sum & 0xff);
+		if (carryIns & 0x10)
+			_state.setFlags(LR35902Flags::HF);
+
+		if ((carryIns >> 8) & 0x1)
 			_state.setFlags(LR35902Flags::CF);
-		else
-			_state.resetFlags(LR35902Flags::CF);
-		auxCarryBit = (value & 0xf) > (_state.a() & 0xf) ? 0 : 1;
-		uint8_t r = _state.a() - value;
-		_state.adjustSZ(r);
-		parityBit = parity(r);
 	}
 	void LR35902::add(const uint8_t value)
 	{
-		uint16_t sum = _state.a() + value;
-		auxCarryBit = ((value & 0x0f) + (_state.a() & 0x0f)) > 0x0f;
+		const uint16_t sum = _state.a() + value;
+		const uint16_t carryIns = sum ^ _state.a() ^ value;
+
 		_state.a() = sum & 0xff;
-		_state.adjustSZ(_state.a());
-		parityBit = parity(_state.a());
+		_state.resetFlags(LR35902Flags::NF | LR35902Flags::CF | LR35902Flags::HF);
+		_state.adjustZ(_state.a());
+		if (carryIns & 0x10)
+			_state.setFlags(LR35902Flags::HF);
 		if (sum > 0xff)
 			_state.setFlags(LR35902Flags::CF);
-		else
-			_state.resetFlags(LR35902Flags::CF);
 	}
 	void LR35902::adc(const uint8_t value)
 	{
 		const uint8_t flag = _state.carryFlag() ? 1 : 0;
-		uint16_t sum = _state.a() + value + flag;
-		auxCarryBit = ((value & 0x0f) + (_state.a() & 0x0f) + flag) > 0x0f;
+		const uint16_t sum = _state.a() + value + flag;
+		const uint16_t carryIns = sum ^ _state.a() ^ value;
+
 		_state.a() = sum & 0xff;
-		_state.adjustSZ(_state.a());
-		parityBit = parity(_state.a());
+		_state.resetFlags(LR35902Flags::NF | LR35902Flags::CF | LR35902Flags::HF);
+		_state.adjustZ(_state.a());
+		if (carryIns & 0x10)
+			_state.setFlags(LR35902Flags::HF);
 		if (sum > 0xff)
+			_state.setFlags(LR35902Flags::CF);
+	}
+	void LR35902::add_hl(const uint16_t value)
+	{
+		uint32_t res = _state.hl() + value;
+		if ((_state.hl() & 0xfff) + (value & 0xfff) > 0xfff)
+			_state.setFlags(LR35902Flags::HF);
+		else
+			_state.resetFlags(LR35902Flags::HF);
+		_state.hl() = res & 0xffff;
+		if ((res & 0xffff0000) != 0)
 			_state.setFlags(LR35902Flags::CF);
 		else
 			_state.resetFlags(LR35902Flags::CF);
+		_elapsed_cycles += 4;
+	}
+	void LR35902::add_sp(const uint16_t value)
+	{
+		uint32_t res = _state.sp() + value;
+		if ((_state.sp() & 0xfff) + (value & 0xfff) > 0xfff)
+			_state.setFlags(LR35902Flags::HF);
+		else
+			_state.resetFlags(LR35902Flags::HF);
+		_state.sp() = res & 0xffff;
+		if ((res & 0xffff0000) != 0)
+			_state.setFlags(LR35902Flags::CF);
+		else
+			_state.resetFlags(LR35902Flags::CF);
+		_elapsed_cycles += 4;
+	}
+
+	void LR35902::jr(const bool condition) {
+		const int8_t delta = static_cast<signed char>(readArgument8());
+		if (condition) {
+			_state.pc() += delta;
+			_elapsed_cycles += 4;
+		}
 	}
 	void LR35902::daa()
 	{
 		uint16_t temp = _state.a();
-		if (((_state.a() & 0xf) > 9) || (auxCarryBit)) {
+		if (((_state.a() & 0xf) > 9) || (_state.halfCarryFlag())) {
 			temp += 6;
-			auxCarryBit = ((_state.a() & 0xf) > 9) ? 1 : 0;
 		}
 		if ((temp >> 4 > 9) || (_state.carryFlag())) {
 			temp += 0x60;
 			_state.setFlags(LR35902Flags::CF);
 		}
 		_state.a() = temp & 0xff;
-		_state.adjustSZ(_state.a());
-		parityBit = parity(_state.a());
+		_state.adjustZ(_state.a());
+		_state.resetFlags(LR35902Flags::HF);
 	}
 	void LR35902::dad(const uint16_t value)
 	{
@@ -215,6 +277,7 @@ namespace xprocessors {
 	bool LR35902::reset(const uint16_t address) {
 		_state.pc() = address;
 		_elapsed_cycles = 0;
+		_stopped = false;
 		interrupt_enabled = 2;
 		interrupt_request = 8;
 		return Z80FamilyCpu::reset(address);
@@ -233,278 +296,297 @@ namespace xprocessors {
 		uint16_t tmp16 = 0;
 
 		switch (opcode) {
-		case 0x01: /* LXI B */
-			_state.c() = readArgument8();
-			_state.b() = readArgument8();
-			cycle = 10;
-			break;
-		case 0x02: /* STAX B */
-			_handlerWrite(_state.bc(), _state.a());
-			cycle = 7;
-			break;
-		case 0x03: /* INX B */
-			_state.c()++;
-			if (_state.c() == 0)
-				_state.b()++;
-			cycle = 5;
-			break;
-		case 0x07: /* RLC */
-			if (_state.a() >> 7)
+		case 0x07: /* RLCA */
+			_state.resetFlags(LR35902Flags::ALL);
+			if (_state.a() & 0x80)
 				_state.setFlags(LR35902Flags::CF);
-			else
-				_state.resetFlags(LR35902Flags::CF);
-			_state.a() = (_state.carryFlag() ? 1 : 0) | (_state.a() << 1);
-			cycle = 4;
+			_state.a() <<= 1;
+			_state.a() |= (_state.carryFlag()) ? 1 : 0;
 			break;
-		case 0x09: /* DAD BC */
-			dad(_state.bc());
-			cycle = 10;
+		case 0x08: /* LD (nnnn), SP */
+			write16(readArgument16(), _state.sp());
 			break;
-		case 0x0A: /* LDAX B */
-			_state.a() = _handlerRead(_state.bc());
-			cycle = 7;
-			break;
-		case 0x0B: /* DCX B */
-			_state.bc() = _state.bc() - 1;
-			cycle = 5;
-			break;
-		case 0x0F: /* RRC */
+		case 0x0F: /* RRCA */
+			_state.resetFlags(LR35902Flags::ALL);
 			if (_state.a() & 1)
 				_state.setFlags(LR35902Flags::CF);
-			else
-				_state.resetFlags(LR35902Flags::CF);
-			_state.a() = (_state.carryFlag() ? 0x80 : 0) | (_state.a() >> 1);
-			cycle = 4;
+			_state.a() >>= 1;
+			_state.a() |= (_state.carryFlag() ? 0x80 : 0);
 			break;
 
-		case 0x11: /* LXI D */
-			_state.e() = readArgument8();
-			_state.d() = readArgument8();
-			cycle = 10;
+		case 0x10: /* STOP d8 */
+			_stopped = true;
+			_state.pc()++;
 			break;
-		case 0x12: /* STAX D */
-			_handlerWrite(_state.de(), _state.a());
-			cycle = 7;
-			break;
-		case 0x13: /* INX D */
-			_state.e()++;
-			if (_state.e() == 0)
-				_state.d()++;
-			cycle = 5;
-			break;
-		case 0x17: /* RAL */
+		case 0x17: /* RLA */
 		{
 			uint8_t flag = (_state.carryFlag()) ? 1 : 0;
-			if (_state.a() >> 7)
+			_state.resetFlags(LR35902Flags::ALL);
+			if (_state.a() & 0x80)
 				_state.setFlags(LR35902Flags::CF);
-			else
-				_state.resetFlags(LR35902Flags::CF);
-
-			_state.a() = (_state.a() << 1) | (flag);
+			_state.a() <<= 1;
+			_state.a() |= flag;
 		}
-		cycle = 4;
 		break;
-		case 0x19: /* DAD D */
-			dad(_state.de());
-			cycle = 10;
-			break;
-		case 0x1A: /* LDAX D */
-			_state.a() = _handlerRead(_state.de());
-			cycle = 7;
-			break;
-		case 0x1B: /* DCX D */
-			_state.de() = _state.de() - 1;
-			cycle = 5;
+		case 0x18: /* JR */
+			jr(true);
 			break;
 		case 0x1F: /* RAR */
 		{
 			uint8_t flag = (_state.carryFlag()) ? 1 : 0;
+			_state.resetFlags(LR35902Flags::ALL);
 			if (_state.a() & 1)
 				_state.setFlags(LR35902Flags::CF);
-			else
-				_state.resetFlags(LR35902Flags::CF);
-			_state.a() = (_state.a() >> 1) | (flag << 7);
+			_state.a() >>= 1;
+			_state.a() |= flag << 7;
 		}
-		cycle = 4;
 		break;
-		case 0x21: /* LXI H */
-			_state.l() = readArgument8();
-			_state.h() = readArgument8();
-			cycle = 10;
+		case 0x20: /* JR NZ */
+			jr(!_state.zeroFlag());
 			break;
-		case 0x22: /* SHLD */
-			tmp16 = readArgument16();
-			_handlerWrite(tmp16, _state.l());
-			_handlerWrite(tmp16 + 1, _state.h());
-			cycle = 16;
-			break;
-		case 0x23: /* INX H */
-			_state.l()++;
-			if (_state.l() == 0)
-				_state.h()++;
-			cycle = 5;
+		case 0x22: /* LD (HL+) */
+			write8(_state.hl(), _state.a());
+			_state.hl()++;
 			break;
 		case 0x27: /* DAA */
 			daa();
-			cycle = 4;
 			break;
-		case 0x29: /* DAD H */
-			dad(_state.hl());
-			cycle = 10;
+		case 0x28: /* JR Z */
+			jr(_state.zeroFlag());
 			break;
-		case 0x2A: /* LHLD */
-			tmp16 = readArgument16();
-			_state.l() = _handlerRead(tmp16);
-			_state.h() = _handlerRead(tmp16 + 1);
-			cycle = 16;
+		case 0x2A: /* LD A, (HL+) */
+			_state.a() = read8(_state.hl());
+			_state.hl()++;
 			break;
-		case 0x2B: /* DCX H */
-			tmp16 = _state.hl() - 1;
-			_state.h() = tmp16 >> 8;
-			_state.l() = tmp16 & 0xff;
-			cycle = 5;
-			break;
-		case 0x2F: /* CMA */
+		case 0x2F: /* CPL */
 			_state.a() = ~_state.a();
-			cycle = 4;
+			_state.setFlags(LR35902Flags::HF | LR35902Flags::NF);
 			break;
 
-		case 0x31: /* LXI SP */
-			_state.sp() = readArgument16();
-			cycle = 10;
+		case 0x30: /* JR NC */
+			jr(!_state.carryFlag());
 			break;
-		case 0x32: /* STA */
-			_handlerWrite(readArgument16(), _state.a());
-			cycle = 13;
+		case 0x32: /* LD (HL-) */
+			write8(_state.hl(), _state.a());
+			_state.hl()--;
 			break;
-		case 0x33: /* INX SP */
-			_state.sp() = _state.sp() + 1;
-			cycle = 5;
-			break;
-		case 0x37: /* STC */
+		case 0x37: /* SCF */
+			_state.resetFlags(LR35902Flags::NF | LR35902Flags::HF);
 			_state.setFlags(LR35902Flags::CF);
-			cycle = 4;
 			break;
-		case 0x39: /* DAD SP */
-			dad(_state.sp());
-			cycle = 10;
+		case 0x38: /* JR C */
+			jr(_state.carryFlag());
 			break;
-		case 0x3A: /* LDA */
-			_state.a() = _handlerRead(readArgument16());
-			cycle = 13;
+		case 0x3A: /* LD A, (HL-) */
+			_state.a() = read8(_state.hl());
+			_state.hl()--;
 			break;
-		case 0x3B: /* DCX SP */
-			_state.sp() = _state.sp() - 1;
-			cycle = 5;
-			break;
-		case 0x3F: /* CMC */
+		case 0x3F: /* CCF */
+			_state.resetFlags(LR35902Flags::NF | LR35902Flags::HF);
 			if (_state.carryFlag())
 				_state.resetFlags(LR35902Flags::CF);
 			else
 				_state.setFlags(LR35902Flags::CF);
-			cycle = 4;
 			break;
-
-		case 0x88: /* ADC B */
-			adc(_state.b());
-			cycle = 4;
-			break;
-		case 0x89: /* ADC C */
-			adc(_state.c());
-			cycle = 4;
-			break;
-		case 0x8A: /* ADC D */
-			adc(_state.d());
-			cycle = 4;
-			break;
-		case 0x8B: /* ADC E */
-			adc(_state.e());
-			cycle = 4;
-			break;
-		case 0x8C: /* ADC H */
-			adc(_state.h());
-			cycle = 4;
-			break;
-		case 0x8D: /* ADC L */
-			adc(_state.l());
-			cycle = 4;
-			break;
-		case 0x8E: /* ADC M */
-			adc(get_m());
-			cycle = 7;
-			break;
-		case 0x8F: /* ADC A */
-			adc(_state.a());
-			cycle = 4;
-			break;
-
 
 		case 0xC7: /* RST 0 */
 			push(_state.pc());
 			_state.pc() = 0;
 			break;
-
-			//		case 0xCF: /* RST 1 */
+		case 0xCB:
+			decode_opcode_cb(readOpcode());
+			break;
+		case 0xCF: /* RST 1 */
+			push(_state.pc());
+			_state.pc() = 0x08;
+			break;
 
 		case 0xD3: /* OUT */
 			_handlerOut(readArgument8(), _state.a());
 			cycle = 10;
 			break;
-			//		case 0xD7: /* RST 2 */
+		case 0xD7: /* RST 2 */
+			push(_state.pc());
+			_state.pc() = 0x10;
+			break;
+		case 0xD9: /* RETI */
+			ret();
+			interrupt_enabled = true;
+			break;
 		case 0XDB: /* IN */
 			_state.a() = _handlerIn(readArgument8());
 			cycle = 10;
 			break;
-			//		case 0xDF: /* RST 3 */
+		case 0xDF: /* RST 3 */
+			push(_state.pc());
+			_state.pc() = 0x18;
+			break;
 
-		case 0xE3: /* XTHL */
-			tmp16 = _handlerRead(_state.sp()) | (_handlerRead(_state.sp() + 1) << 8);
-			_handlerWrite(_state.sp(), _state.l());
-			_handlerWrite(_state.sp() + 1, _state.h());
-			_state.hl() = tmp16;
-			cycle = 18;
+		case 0xE0: /* LDH */
+			write8(0xff00 + readArgument8(), _state.a());
 			break;
-		case 0xE6: /* ANI */
-			ana(readArgument8());
-			cycle = 7;
+		case 0xE2: /* LD (C), A */
+			write8(0xff00 + _state.c(), _state.a());
 			break;
-			//		case 0XE7: /* RST 4 */
-		case 0xE9: /* PCHL */
+		case 0xE7: /* RST 4 */
+			push(_state.pc());
+			_state.pc() = 0x20;
+			break;
+		case 0xE8: /* ADD SP */
+			add_sp(readArgument8());
+			break;
+		case 0xE9: /* JP HL */
 			_state.pc() = _state.hl();
-			cycle = 5;
 			break;
-		case 0xEB: /* XCHG */ { uint8_t tmp = _state.d(); _state.d() = _state.h(); _state.h() = tmp; tmp = _state.e(); _state.e() = _state.l(); _state.l() = tmp; } cycle = 4; break;
-		case 0xEE: /* XRI */
-			xra(readArgument8());
-			cycle = 7;
+		case 0xEA: /* LD (), A */
+			write8(readArgument16(), _state.a());
 			break;
-			//		case 0xEF: /* RST 5 */
+		case 0xEF: /* RST 5 */
+			push(_state.pc());
+			_state.pc() = 0x28;
+			break;
 
+		case 0xF0: /* LDH */
+			_state.a() = read8(0xff00 + readArgument8());
+			break;
+		case 0xF2: /* LD A, (C) */
+			_state.a() = read8(0xff00 + _state.c());
+			break;
 		case 0xF3: /* DI */
 			interrupt_enabled = 0;
-			cycle = 4;
 			break;
-		case 0xF6: /* ORI */
-			ora(readArgument8());
-			cycle = 7;
+		case 0xF7: /* RST 6 */
+			push(_state.pc());
+			_state.pc() = 0x30;
 			break;
-			//		case 0xF7: /* RST 6 */
+		case 0xF8: /* LDHL */
+			_state.hl() = _state.sp();
+			add_hl(readArgument8());
+			break;
 		case 0xF9: /* SPHL */
 			_state.sp() = _state.hl();
-			cycle = 5;
+			break;
+		case 0xFA: /* LD A, () */
+			_state.a() = read8(readArgument16());
 			break;
 		case 0xFB: /* EI */
 			interrupt_enabled = 1;
-			cycle = 4;
 			break;
-		case 0xFE: /* CPI */
-			cmp(readArgument8());
-			cycle = 7;
+		case 0xFF: /* RST 6 */
+			push(_state.pc());
+			_state.pc() = 0x38;
 			break;
-			//		case 0xFF: /* RST 7 */
 
 		default: unimplemented(opcode); break;
 		}
 	}
-}
 
+	void LR35902::decode_opcode_cb(const opcode_t opcode) {
+		switch (opcode_cb_tables[opcode]) {
+		case opcodes::RLC_R:
+		case opcodes::RLC_HL:
+			decodeR(opcode, rlc(decodeR(opcode)));
+			break;
+		case opcodes::RL_R:
+		case opcodes::RL_HL:
+			decodeR(opcode, rl(decodeR(opcode)));
+			break;
+		case opcodes::RR_R:
+		case opcodes::RR_HL:
+			decodeR(opcode, rr(decodeR(opcode)));
+			break;
+		case opcodes::RRC_R:
+		case opcodes::RRC_HL:
+			decodeR(opcode, rrc(decodeR(opcode)));
+			break;
+		case opcodes::SRL_R:
+		case opcodes::SRL_HL:
+			decodeR(opcode, srl(decodeR(opcode)));
+			break;
+		case opcodes::SRA_R:
+		case opcodes::SRA_HL:
+			decodeR(opcode, sra(decodeR(opcode)));
+			break;
+		case opcodes::SLA_R:
+		case opcodes::SLA_HL:
+			decodeR(opcode, sla(decodeR(opcode)));
+			break;
+		case opcodes::SLL_R:
+		case opcodes::SLL_HL:
+			decodeR(opcode, sll(decodeR(opcode)));
+			break;
+		case opcodes::BIT_R:
+		case opcodes::BIT_HL:
+			_state.resetFlags(LR35902Flags::NF);
+			_state.setFlags(LR35902Flags::HF);
+			_state.setFlag(LR35902Flags::ZF, (1 << (decodeR(opcode) & ((opcode & 0b00111000) >> 3))));
+			break;
+		case opcodes::SET_R:
+		case opcodes::SET_HL:
+			decodeR(opcode, decodeR(opcode) | (1 << ((opcode & 0b00111000) >> 3)));
+			break;
+		case opcodes::RES_R:
+		case opcodes::RES_HL:
+			decodeR(opcode, decodeR(opcode) & ~(1 << ((opcode & 0b00111000) >> 3)));
+			break;
+		default:
+			throw std::runtime_error("Unexpected opcode in decode_cb : " + opcode);
+		}
+	}
+
+	uint8_t LR35902::rlc(const uint8_t value) {
+		_state.setFlag(LR35902Flags::CF, ((value & 0x80) == 0x80));
+		_state.setFlag(LR35902Flags::ZF, (value == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return ((value << 1) | (value >> 7));
+	}
+	uint8_t LR35902::rl(const uint8_t value) {
+		const uint8_t result = (value << 1) | (_state.carryFlag() ? 1 : 0);
+		_state.setFlag(LR35902Flags::CF, ((value & 0x80) == 0x80));
+		_state.setFlag(LR35902Flags::ZF, (result == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return result;
+	}
+	uint8_t LR35902::rrc(const uint8_t value) {
+		_state.setFlag(LR35902Flags::CF, ((value & 0x01) == 0x01));
+		_state.setFlag(LR35902Flags::ZF, (value == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return ((value >> 1) | (value << 7));
+	}
+	uint8_t LR35902::rr(const uint8_t value) {
+		const uint8_t result = (value >> 1) | (_state.carryFlag() ? 0x80 : 0);
+		_state.setFlag(LR35902Flags::CF, ((value & 0x01) == 0x01));
+		_state.setFlag(LR35902Flags::ZF, (result == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return result;
+	}
+	uint8_t LR35902::srl(const uint8_t value) {
+		const uint8_t result = value >> 1;
+		_state.setFlag(LR35902Flags::CF, ((value & 0x01) == 0x01));
+		_state.setFlag(LR35902Flags::ZF, (result == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return result;
+	}
+	uint8_t LR35902::sra(const uint8_t value) {
+		const uint8_t result = value >> 1 | (value & 0x80);
+		_state.setFlag(LR35902Flags::CF, ((value & 0x01) == 0x01));
+		_state.setFlag(LR35902Flags::ZF, (result == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return result;
+	}
+	uint8_t LR35902::sla(const uint8_t value) {
+		const uint8_t result = value << 1;
+		_state.setFlag(LR35902Flags::CF, ((value & 0x80) == 0x80));
+		_state.setFlag(LR35902Flags::ZF, (result == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return result;
+	}
+	uint8_t LR35902::sll(const uint8_t value) {
+		const uint8_t result = (value << 1) | 1;
+		_state.setFlag(LR35902Flags::CF, ((value & 0x80) == 0x80));
+		_state.setFlag(LR35902Flags::ZF, (result == 0));
+		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
+		return result;
+	}
+
+}

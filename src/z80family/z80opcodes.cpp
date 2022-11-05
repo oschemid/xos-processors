@@ -26,17 +26,12 @@ enum class opcode {
 	DI,
 	EI,
 
-	ADD_HL_SS,
 	DAA,
 	CPL,
 	SCF,
 	CCF,
 	LD_HL_NNNN,
 	LD_NNNN_HL,
-	LD_A_DE,
-	LD_DE_A,
-	LD_A_BC,
-	LD_BC_A,
 	LD_HL_N,
 	LD_A_NNNN,
 	LD_NNNN_A,
@@ -93,113 +88,99 @@ constexpr auto opcodes{ []() constexpr {
 		if (i == 0b00110101)
 			result[i] = opcode::DEC_HL;
 
-		if ((i & 0b11001111) == 0b00001001)
-			result[i] = opcode::ADD_HL_SS;
 		if ((i & 0b11100111) == 0b00100000)
 			result[i] = opcode::JR_C;
 		if ((i & 0b11000111) == 0b11000111)
 			result[i] = opcode::RST;
 		switch (i) {
-		case 0x02:
-			result[i] = opcode::LD_BC_A;
-			break;
-		case 0x07:
-			result[i] = opcode::RLCA;
-			break;
-		case 0x08:
-			result[i] = opcode::EX_AF;
-			break;
-		case 0x0A:
-			result[i] = opcode::LD_A_BC;
-			break;
-		case 0x0F:
-			result[i] = opcode::RRCA;
-			break;
-		case 0x10:
-			result[i] = opcode::DJNZ;
-			break;
-		case 0x12:
-			result[i] = opcode::LD_DE_A;
-			break;
-		case 0x17:
-			result[i] = opcode::RLA;
-			break;
-		case 0x18:
-			result[i] = opcode::JR;
-			break;
-		case 0x1A:
-			result[i] = opcode::LD_A_DE;
-			break;
-		case 0x1F:
-			result[i] = opcode::RRA;
-			break;
-		case 0x22:
-			result[i] = opcode::LD_NNNN_HL;
-			break;
-		case 0x27:
-			result[i] = opcode::DAA;
-			break;
-		case 0x2A:
-			result[i] = opcode::LD_HL_NNNN;
-			break;
-		case 0x2F:
-			result[i] = opcode::CPL;
-			break;
-		case 0x32:
-			result[i] = opcode::LD_NNNN_A;
-			break;
-		case 0x37:
-			result[i] = opcode::SCF;
-			break;
-		case 0x3A:
-			result[i] = opcode::LD_A_NNNN;
-			break;
-		case 0x3F:
-			result[i] = opcode::CCF;
-			break;
-		case 0xCB:
-			result[i] = opcode::DECODE_CB;
-			break;
-		case 0xD3:
-			result[i] = opcode::OUT_N;
-			break;
-		case 0xD9:
-			result[i] = opcode::EXX;
-			break;
-		case 0xDB:
-			result[i] = opcode::IN_N;
-			break;
-		case 0xDD:
-			result[i] = opcode::DECODE_DD;
-			break;
-		case 0xE3:
-			result[i] = opcode::EX_SP;
-			break;
-		case 0xE9:
-			result[i] = opcode::JP_HL;
-			break;
-		case 0xEB:
-			result[i] = opcode::EX_DE;
-			break;
-		case 0xED:
-			result[i] = opcode::DECODE_ED;
-			break;
-		case 0xF3:
-			result[i] = opcode::DI;
-			break;
-		case 0xF9:
-			result[i] = opcode::LD_SP_HL;
-			break;
-		case 0xFB:
-			result[i] = opcode::EI;
-			break;
-		case 0xFD:
-			result[i] = opcode::DECODE_FD;
-			break;
+			case 0x07:
+				result[i] = opcode::RLCA;
+				break;
+			case 0x08:
+				result[i] = opcode::EX_AF;
+				break;
+			case 0x0F:
+				result[i] = opcode::RRCA;
+				break;
+			case 0x10:
+				result[i] = opcode::DJNZ;
+				break;
+			case 0x17:
+				result[i] = opcode::RLA;
+				break;
+			case 0x18:
+				result[i] = opcode::JR;
+				break;
+			case 0x1F:
+				result[i] = opcode::RRA;
+				break;
+			case 0x22:
+				result[i] = opcode::LD_NNNN_HL;
+				break;
+			case 0x27:
+				result[i] = opcode::DAA;
+				break;
+			case 0x2A:
+				result[i] = opcode::LD_HL_NNNN;
+				break;
+			case 0x2F:
+				result[i] = opcode::CPL;
+				break;
+			case 0x32:
+				result[i] = opcode::LD_NNNN_A;
+				break;
+			case 0x37:
+				result[i] = opcode::SCF;
+				break;
+			case 0x3A:
+				result[i] = opcode::LD_A_NNNN;
+				break;
+			case 0x3F:
+				result[i] = opcode::CCF;
+				break;
+			case 0xCB:
+				result[i] = opcode::DECODE_CB;
+				break;
+			case 0xD3:
+				result[i] = opcode::OUT_N;
+				break;
+			case 0xD9:
+				result[i] = opcode::EXX;
+				break;
+			case 0xDB:
+				result[i] = opcode::IN_N;
+				break;
+			case 0xDD:
+				result[i] = opcode::DECODE_DD;
+				break;
+			case 0xE3:
+				result[i] = opcode::EX_SP;
+				break;
+			case 0xE9:
+				result[i] = opcode::JP_HL;
+				break;
+			case 0xEB:
+				result[i] = opcode::EX_DE;
+				break;
+			case 0xED:
+				result[i] = opcode::DECODE_ED;
+				break;
+			case 0xF3:
+				result[i] = opcode::DI;
+				break;
+			case 0xF9:
+				result[i] = opcode::LD_SP_HL;
+				break;
+			case 0xFB:
+				result[i] = opcode::EI;
+				break;
+			case 0xFD:
+				result[i] = opcode::DECODE_FD;
+				break;
+			}
 		}
-	}
-	return result;
-}()
+		return result;
+	}()
 };
 
 
@@ -285,7 +266,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 	case opcode::LD_HL_N:
 	{
 		int8_t delta = (current_prefix != NO) ? readArgument8() : 0;
-		//apply_hl([this](const uint8_t) { return readArgument8(); }, current_prefix, delta);
 
 		if (current_prefix == NO) {
 			write8(_state.hl(), readArgument8());
@@ -309,18 +289,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_state.sp() = _state.iy();
 		_elapsed_cycles += Cost::READ_WRITE_RR;
 		break;
-	case opcode::LD_A_BC:
-		_state.a() = read8(_state.bc());
-		break;
-	case opcode::LD_A_DE:
-		_state.a() = read8(_state.de());
-		break;
-	case opcode::LD_BC_A:
-		write8(_state.bc(), _state.a());
-		break;
-	case opcode::LD_DE_A:
-		write8(_state.de(), _state.a());
-		break;
 	case opcode::LD_A_NNNN:
 		_state.a() = read8(readArgument16());
 		break;
@@ -341,9 +309,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 		write16(readArgument16(), decodeRR(opcode));
 		break;
 
-	case opcode::ADD_HL_SS:
-		add_ss(opcode, current_prefix);
-		break;
 	case opcode::ADD_HL:
 		if (current_prefix == DD) {
 			add(read8(_state.ix() + static_cast<signed char>(readArgument8())));
@@ -557,16 +522,15 @@ void Z80::decode_opcode(const uint8_t opcode) {
 }
 
 /**********************************************************************************************************************/
-void Z80::add_ss(const opcode_t opcode, const prefix p) {
+void Z80::add_hl(const uint16_t value) {
 	const uint16_t a = decodeRR(0x20);
-	const uint16_t b = decodeRR(opcode);
-	const uint16_t s = a + b;
+	const uint16_t s = a + value;
 
 	decodeRR(0x20, s);
 	_state.resetFlags(Z80State::NF | Z80State::CF | Z80State::HF);
-	if (a > 0xffff - b)
+	if (a > 0xffff - value)
 		_state.setFlags(Z80State::CF);
-	if (((s ^ a ^ b) >> 11) & 0x1)
+	if (((s ^ a ^ value) >> 11) & 0x1)
 		_state.setFlags(Z80State::HF);
 	_elapsed_cycles += 7;
 }
