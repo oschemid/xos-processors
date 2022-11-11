@@ -5,7 +5,8 @@
 namespace xprocessors {
 	template<class F> class Z80FamilyState {
 	protected:
-		pair16_t _af;
+		register8_t _a;
+		register8_t _f;
 		pair16_t _bc;
 		pair16_t _de;
 		pair16_t _hl;
@@ -14,10 +15,8 @@ namespace xprocessors {
 
 	public:
 		// Registers 8 bits
-		uint8_t a() const { return _af.byte[1]; }
-		uint8_t& a() { return _af.byte[1]; }
-		uint8_t f() const { return _af.byte[0]; }
-		uint8_t& f() { return _af.byte[0]; }
+		uint8_t a() const { return _a; }
+		uint8_t& a() { return _a; }
 		uint8_t b() const { return _bc.byte[1]; }
 		uint8_t& b() { return _bc.byte[1]; }
 		uint8_t c() const { return _bc.byte[0]; }
@@ -32,8 +31,8 @@ namespace xprocessors {
 		uint8_t& l() { return _hl.byte[0]; }
 
 		// Registers 16 bits
-		uint16_t af() const { return _af.word; }
-		uint16_t& af() { return _af.word; }
+		uint16_t af() const { return (_a << 8) | _f | F::MASK; }
+		void af(const uint16_t value) { _a = value >> 8; _f = value & F::ALL; }
 		uint16_t bc() const { return _bc.word; }
 		uint16_t& bc() { return _bc.word; }
 		uint16_t de() const { return _de.word; }
@@ -46,26 +45,31 @@ namespace xprocessors {
 		uint16_t& pc() { return _pc; }
 
 		// Flags
-		bool parityFlag() const { return (f() & F::PF) ? true : false; }
-		void setParityFlag(const bool v) { v ? f() |= F::PF : f() &= ~F::PF; }
-		bool carryFlag() const { return (f() & static_cast<uint8_t>(F::CF)) ? true : false; }
-		void setCarryFlag(const bool v) { v ? f() |= F::CF : f() &= ~F::CF; }
-		bool signFlag() const { return (f() & static_cast<uint8_t>(F::SF)) ? true : false; }
-		void setSignFlag(const bool v) { v ? f() |= F::SF : f() &= ~F::SF; }
-		bool zeroFlag() const { return (f() & static_cast<uint8_t>(F::ZF)) ? true : false; }
-		void setZeroFlag(const bool v) { v ? f() |= F::ZF : f() &= ~F::ZF; }
-		bool halfCarryFlag() const { return (f() & F::HF) ? true : false; }
-		bool addSubFlag() const { return (f() & F::NF) ? true : false; }
+		bool parityFlag() const { return (_f & F::PF) ? true : false; }
+		void setParityFlag(const bool v) { setFlag(F::PF, v); }
+		bool carryFlag() const { return (_f & F::CF) ? true : false; }
+		void setCarryFlag(const bool v) { setFlag(F::CF, v); }
+		bool signFlag() const { return (_f & F::SF) ? true : false; }
+		void setSignFlag(const bool v) { setFlag(F::SF, v); }
+		bool zeroFlag() const { return (_f & F::ZF) ? true : false; }
+		void setZeroFlag(const bool v) { setFlag(F::ZF, v); }
+		bool halfCarryFlag() const { return (_f & F::HF) ? true : false; }
+		void setHalfCarryFlag(const bool v) { setFlag(F::HF, v); }
+		bool addSubFlag() const { return (_f & F::NF) ? true : false; }
+		void setAddSubFlag(const bool v) { setFlag(F::NF, v); }
 
-		void setFlag(const F flag, const bool value) {
-			value ? f() |= static_cast<uint8_t>(flag) : f() &= ~static_cast<uint8_t>(flag);
+		void setFlag(const uint8_t flag, const bool value) {
+			value ? _f |= flag : _f &= ~flag;
+		}
+		void adjustZ(const uint8_t value) {
+			setFlag(F::ZF, value == 0);
 		}
 		void adjustSZ(const uint8_t value) {
-			setFlag(F::ZF, value == 0);
+			adjustZ(value);
 			setFlag(F::SF, value >= 0x80);
 		}
-		void resetFlags(const F flags) { f() &= ~static_cast<uint8_t>(flags); }
-		void setFlags(const F flags) { f() |= static_cast<uint8_t>(flags); }
+		void resetFlags(const uint8_t flags) { _f &= ~flags; }
+		void setFlags(const uint8_t flags) { _f |= flags; }
 		void setSZXY(const uint8_t value) {
 			resetFlags(F::ZF | F::XF | F::SF | F::YF);
 			if (value == 0)
@@ -95,11 +99,12 @@ namespace xprocessors {
 			reset();
 		}
 		void reset() {
-			af() = 0;
-			bc() = 0;
-			de() = 0;
-			hl() = 0;
-			sp() = 0;
+			_a = 0;
+			_f = 0;
+			_bc.word = 0;
+			_de.word = 0;
+			_hl.word = 0;
+			_sp = 0;
 		}
 	};
 }

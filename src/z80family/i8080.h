@@ -5,52 +5,60 @@
 
 
 namespace xprocessors {
-	enum class Intel8080Flags {
-		SF = 0x80,
-		ZF = 0x40,
-		CF = 0x01
+	struct Intel8080Flags {
+		static const uint8_t MASK = 0x02;
+		static const uint8_t SF = 0x80;
+		static const uint8_t ZF = 0x40;
+		static const uint8_t CF = 0x01;
+		static const uint8_t PF = 0x04;
+		static const uint8_t HF = 0x10;
+		static const uint8_t ALL = SF | ZF | CF | PF | HF;
+	};
+	struct Intel8080Costs {
+		static const uint8_t READ_OPCODE = 4;
+		static const uint8_t READ_MEMORY8 = 3;
+		static const uint8_t READ_MEMORY16 = 6;
+		static const uint8_t WRITE_MEMORY8 = 3;
+		static const uint8_t WRITE_MEMORY16 = 6;
+		static const uint8_t READ_WRITE_R = 1;
+		static const uint8_t READ_WRITE_RR = 1;
+		static const uint8_t WRITE_PC = 0;
+		static const uint8_t EXTRAPUSH = 1;
+		static const uint8_t EXTRACALL = 1;
+		static const uint8_t EXTRACALL2 = 0;
+		static const uint8_t EXTRARET = 1;
+		static const uint8_t EXTRAHALT = 3;
 	};
 
 	class Intel8080State : public Z80FamilyState<Intel8080Flags> {
 
 	};
 
-	class Intel8080 : public Z80FamilyCpu<Intel8080State>
+	class Intel8080 : public Z80FamilyCpu<Intel8080State, Intel8080Costs>
 	{
 	protected:
 		uint8_t interrupt_enabled; // 0 ok, 1 wait one, 2 no
 		uint8_t interrupt_request;
 
-		uint8_t auxCarryBit : 1; // auxiliary carry bit
-		uint8_t parityBit : 1; // parity bit
+		void add(const uint8_t) override;
+		void adc(const uint8_t) override;
+		void sub(const uint8_t) override;
+		void sbc(const uint8_t) override;
+		void ora(const uint8_t) override;
+		void xra(const uint8_t) override;
+		void ana(const uint8_t) override;
+		void cmp(const uint8_t) override;
+		void add_hl(const uint16_t) override;
+
+		uint8_t dec(const uint8_t) override;
+		uint8_t inc(const uint8_t) override;
 
 	public:
 
 		uint8_t get_m() const;
 
-		uint8_t dcr(const uint8_t);
-		uint8_t inr(const uint8_t);
-		void xra(const uint8_t);
-		void ana(const uint8_t);
-		void ora(const uint8_t);
-		void sub(const uint8_t, const uint8_t = 0);
-		void sbb(const uint8_t);
-		void add(const uint8_t, const uint8_t = 0);
-		void adc(const uint8_t);
-		void cmp(const uint8_t);
 		void daa();
-		void dad(const uint16_t);
-
-		void unimplemented();
-		void illegal();
-
-		void pushToStack(const uint16_t);
-		const uint16_t popOfStack();
-
-		void write(const uint16_t address, const uint16_t value) {
-			_handlerWrite(address, value & 0xFF);
-			_handlerWrite(address + 1, value >> 8);
-		}
+		//		void dad(const uint16_t);
 
 		void decode_opcode(const uint8_t);
 
