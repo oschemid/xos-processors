@@ -476,6 +476,7 @@ namespace xprocessors {
 			break;
 		case 0xE8: /* ADD SP */
 			_state.sp() = add_sp(static_cast<signed char>(readArgument8()));
+			_elapsed_cycles += LR35902Costs::EXTRAPUSH;
 			break;
 		case 0xE9: /* JP HL */
 			_state.pc() = _state.hl();
@@ -506,6 +507,7 @@ namespace xprocessors {
 			break;
 		case 0xF9: /* SPHL */
 			_state.sp() = _state.hl();
+			_elapsed_cycles += LR35902Costs::EXTRAPUSH;
 			break;
 		case 0xFA: /* LD A, () */
 			_state.a() = read8(readArgument16());

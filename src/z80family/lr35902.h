@@ -27,6 +27,7 @@ namespace xprocessors {
 		static const uint8_t EXTRAPUSH = 4;
 		static const uint8_t EXTRARET = 4;
 		static const uint8_t EXTRACALL = 0;
+		static const uint8_t EXTRACALL2 = 4;
 		static const uint8_t EXTRAHALT = 0;
 	};
 

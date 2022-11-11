@@ -51,6 +51,7 @@ namespace xprocessors {
 				push(_state.pc());
 				_state.pc() = address;
 				_elapsed_cycles += Cost::WRITE_PC;
+				_elapsed_cycles -= Cost::EXTRACALL2;
 			}
 			else
 				_elapsed_cycles += Cost::EXTRACALL;

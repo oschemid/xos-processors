@@ -171,6 +171,7 @@ namespace xprocessors {
 		static const uint8_t EXTRAPUSH = 1;
 		static const uint8_t EXTRARET = 1;
 		static const uint8_t EXTRACALL = 0;
+		static const uint8_t EXTRACALL2 = 0;
 		static const uint8_t EXTRAHALT = 0;
 	};
 	class Z80 : public Z80FamilyCpu<Z80State, Z80Costs>
