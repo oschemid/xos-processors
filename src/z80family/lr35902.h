@@ -41,6 +41,7 @@ namespace xprocessors {
 		uint8_t interrupt_enabled; // 0 ok, 1 wait one, 2 no
 		uint8_t interrupt_request;
 		bool _stopped;
+		void interrupt_handler();
 
 		void add(const uint8_t) override;
 		void adc(const uint8_t) override;
@@ -51,7 +52,7 @@ namespace xprocessors {
 		void xra(const uint8_t) override;
 		void cmp(const uint8_t) override;
 		void add_hl(const uint16_t) override;
-		void add_sp(const uint16_t);
+		uint16_t add_sp(const uint8_t);
 
 		uint8_t rlc(const uint8_t);
 		uint8_t rrc(const uint8_t);
@@ -59,7 +60,7 @@ namespace xprocessors {
 		uint8_t rr(const uint8_t);
 		uint8_t srl(const uint8_t);
 		uint8_t sra(const uint8_t);
-		uint8_t sll(const uint8_t);
+		uint8_t swap(const uint8_t);
 		uint8_t sla(const uint8_t);
 		uint8_t dec(const uint8_t) override;
 		uint8_t inc(const uint8_t) override;

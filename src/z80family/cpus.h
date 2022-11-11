@@ -13,6 +13,7 @@ namespace xprocessors {
 		uint8_t c() const { return _state.c(); }
 		uint8_t e() const { return _state.e(); }
 		uint16_t de() const { return _state.de(); }
+		uint16_t pc() const { return _state.pc(); }
 
 	protected:
 		// state

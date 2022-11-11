@@ -7,29 +7,68 @@
 tests::lr35902_tests::lr35902_tests() :
 	cpu_tests() {
 	cpu = Cpu::create("lr35902");
-	cpu->read([this](const uint16_t p) { return memory[p]; });
-	cpu->write([this](const uint16_t p, const uint8_t v) { memory[p] = v; return true; });
+	cpu->read([this](const uint16_t p) { return read(p); });
+	cpu->write([this](const uint16_t p, const uint8_t v) { write(p, v); return true; });
+	//	cpu->in([this](const uint8_t v) { return read(0xff00 + v); });
+	//	cpu->out([this](const uint8_t p, const uint8_t v) { out(p, v); });
+	selectedROMbanks = 1;
 }
 
-void tests::lr35902_tests::out(const uint8_t p, const uint8_t v) {
-	if (p == 0) {
-		finished = true;
+const uint8_t tests::lr35902_tests::read(const uint16_t address) {
+	if (address < 0x8000) {
+		if (address < 0x4000)
+			return memory[address];
+		return memory[selectedROMbanks * 0x4000 + (address - 0x4000)];
+	}
+	return memory2[address - 0x8000];
+}
+void tests::lr35902_tests::write(const uint16_t address, const uint8_t value) {
+	if (address < 0x8000) {
+		if ((address >= 0x2000) && (address < 0x4000)) {
+			selectedROMbanks = value & 0x1f;
+			if (value == 0)
+				selectedROMbanks++;
+		}
 		return;
 	}
-	if (p == 1) {
-		auto cpuc = static_cast<xprocessors::LR35902*>(cpu);
-		uint8_t operation = cpuc->c();
-
-		if (operation == 2) { // print a character stored in E
-			std::cout << (char)(cpuc->e());
+	if (address >= 0xff00) {
+		out(address & 0xff, value);
+	}
+	else {
+		memory2[address - 0x8000] = value;
+	}
+}
+void tests::lr35902_tests::out(const uint8_t p, const uint8_t v) {
+	switch (p) {
+	case 1:
+		c = v;
+		break;
+	case 2:
+		if (v == 0x81)
+			std::cout << (char)c;
+		break;
+	}
+	memory2[0xff00 + p - 0x8000] = v;
+}
+void tests::lr35902_tests::timer(const uint64_t cycles) {
+	static const uint16_t frequency[4] = { 1024,16,64,256 };
+	const uint8_t tac = memory2[0xff07 - 0x8000];
+	if (tac & 0x04) {
+		if (previous_cycles == 0)
+			previous_cycles = cycles;
+		const uint64_t delta = (cycles - previous_cycles) / frequency[tac & 0x03];
+		if (delta > 0) {
+			uint16_t tima = memory2[0xff05 - 0x8000] + delta;
+			if (tima > 0xff) {
+				tima = memory2[0xff06 - 0x8000];
+				memory2[0xff0f - 0x8000] |= 0x04;
+			}
+			memory2[0xff05 - 0x8000] = tima & 0xff;
+			previous_cycles = cycles;
 		}
-		else if (operation == 9) { // print from memory at (DE) until '$' char
-			uint16_t addr = cpuc->de();
-			do {
-				std::cout << (char)(memory[addr++]);
-			} while (memory[addr] != '$');
-		}
-
+	}
+	else {
+		previous_cycles = 0;
 	}
 }
 
@@ -101,21 +140,20 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 };
 
 bool tests::lr35902_tests::runTest(const string& filename, const uint64_t cycles_expected) {
-	uint64_t cycles = 0;
 	load(0x0, filename);
-	//	memory[0] = 0xD3;
-	//	memory[1] = 0x00;
-	//	memory[5] = 0xD3;
-	//	memory[6] = 0x01;
-	//	memory[7] = 0xC9;
+
+	auto cpuc = static_cast<LR35902*>(cpu);
 	cpu->reset(0x100);
-	cpu->in([](const uint8_t) { return 0; });
-	cpu->out([this](const uint8_t p, const uint8_t v) { out(p, v); });
 
 	finished = false;
 
 	while (!finished) {
-		cycles += cpu->executeOne();
+		cpu->executeOne();
+		timer(cpu->elapsed_cycles());
+		if ((read(cpuc->pc()) == 0x18) && (read(cpuc->pc() + 1) == 0xfe))
+			finished = true;
+		if ((cpuc->pc() == 0x06f1) && (read(cpuc->pc()) == 0xc3))
+			finished = true;
 	}
 	if (cycles_expected > 0)
 		std::cout << std::endl << "Expected cycles : " << cycles_expected << " - Cycles : " << cpu->elapsed_cycles();

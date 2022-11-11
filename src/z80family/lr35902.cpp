@@ -66,7 +66,10 @@ constexpr auto opcode_cb_tables{ []() constexpr {
 }()
 };
 
-
+struct LR35902IO {
+	static const uint8_t IF = 0x0f;
+	static const uint8_t IE = 0xff;
+};
 
 namespace xprocessors {
 	LR35902::LR35902() :
@@ -195,6 +198,7 @@ namespace xprocessors {
 	void LR35902::add_hl(const uint16_t value)
 	{
 		uint32_t res = _state.hl() + value;
+		_state.resetFlags(LR35902Flags::NF);
 		if ((_state.hl() & 0xfff) + (value & 0xfff) > 0xfff)
 			_state.setFlags(LR35902Flags::HF);
 		else
@@ -206,19 +210,20 @@ namespace xprocessors {
 			_state.resetFlags(LR35902Flags::CF);
 		_elapsed_cycles += 4;
 	}
-	void LR35902::add_sp(const uint16_t value)
+	uint16_t LR35902::add_sp(const uint8_t value)
 	{
-		uint32_t res = _state.sp() + value;
-		if ((_state.sp() & 0xfff) + (value & 0xfff) > 0xfff)
+		uint32_t res = _state.sp() + static_cast<signed char>(value);
+		_state.resetFlags(LR35902Flags::NF | LR35902Flags::ZF);
+		if ((_state.sp() & 0xf) + (value & 0xf) > 0xf)
 			_state.setFlags(LR35902Flags::HF);
 		else
 			_state.resetFlags(LR35902Flags::HF);
-		_state.sp() = res & 0xffff;
-		if ((res & 0xffff0000) != 0)
+		if ((_state.sp() & 0xff) + value > 0xff)
 			_state.setFlags(LR35902Flags::CF);
 		else
 			_state.resetFlags(LR35902Flags::CF);
 		_elapsed_cycles += 4;
+		return res & 0xffff;
 	}
 
 	void LR35902::jr(const bool condition) {
@@ -230,15 +235,23 @@ namespace xprocessors {
 	}
 	void LR35902::daa()
 	{
-		uint16_t temp = _state.a();
-		if (((_state.a() & 0xf) > 9) || (_state.halfCarryFlag())) {
-			temp += 6;
+		if (_state.addSubFlag()) {
+			if (_state.carryFlag()) {
+				_state.a() -= 0x60;
+			}
+			if (_state.halfCarryFlag()) {
+				_state.a() -= 0x06;
+			}
 		}
-		if ((temp >> 4 > 9) || (_state.carryFlag())) {
-			temp += 0x60;
-			_state.setFlags(LR35902Flags::CF);
+		else {
+			if ((_state.a() > 0x99) || (_state.carryFlag())) {
+				_state.a() += 0x60;
+				_state.setFlags(LR35902Flags::CF);
+			}
+			if (((_state.a() & 0xf) > 9) || (_state.halfCarryFlag())) {
+				_state.a() += 6;
+			}
 		}
-		_state.a() = temp & 0xff;
 		_state.adjustZ(_state.a());
 		_state.resetFlags(LR35902Flags::HF);
 	}
@@ -253,15 +266,41 @@ namespace xprocessors {
 			_state.resetFlags(LR35902Flags::CF);
 	}
 
-	const uint8_t LR35902::executeOne() {
-		if (interrupt_enabled == 0 && interrupt_request < 8) {
-			interrupt_enabled = 2;
-			push(_state.pc());
-			_state.pc() = interrupt_request << 3;
-			interrupt_request = 8;
+	void LR35902::interrupt_handler() {
+		if ((interrupt_enabled != 0) && (!_halted))
+			return;
+		const uint8_t mask = read8(0xff00 + LR35902IO::IE);
+		const uint8_t request = read8(0xff00 + LR35902IO::IF);
+		uint8_t request_enabled = request & mask;
+
+		if (request_enabled)
+			_halted = false;
+		if (interrupt_enabled != 0)
+			return;
+		uint8_t handler = 1;
+		uint16_t int_pc = 0x40;
+		while (request_enabled) {
+			if (request_enabled & 1) {
+				write8(0xff00 + LR35902IO::IF, request & ~handler);
+				interrupt_enabled = 2;
+				push(_state.pc());
+				_state.pc() = int_pc;
+				request_enabled = 0;
+			}
+			else {
+				handler <<= 1;
+				request_enabled >>= 1;
+				int_pc += 0x08;
+			}
 		}
-		else if (interrupt_enabled == 1)
+	}
+	const uint8_t LR35902::executeOne() {
+		interrupt_handler();
+		if (interrupt_enabled == 1)
 			interrupt_enabled = 0;
+		if (_halted) {
+			return 4;
+		}
 
 		const opcode_t opcode = readOpcode();
 		decode_opcode(opcode);
@@ -280,7 +319,18 @@ namespace xprocessors {
 		_stopped = false;
 		interrupt_enabled = 2;
 		interrupt_request = 8;
-		return Z80FamilyCpu::reset(address);
+		//		return Z80FamilyCpu::reset(address);
+		Z80FamilyCpu::reset(address);
+		_state.sp() = 0xfffe;
+		_state.a() = 0x01;
+		_state.setFlags(0xb0);
+		_state.b() = 0;
+		_state.c() = 0x13;
+		_state.d() = 0;
+		_state.e() = 0xd8;
+		_state.h() = 0x01;
+		_state.l() = 0x4d;
+		return true;
 	}
 
 	/*********************************************************************************************************************/
@@ -401,21 +451,13 @@ namespace xprocessors {
 			_state.pc() = 0x08;
 			break;
 
-		case 0xD3: /* OUT */
-			_handlerOut(readArgument8(), _state.a());
-			cycle = 10;
-			break;
 		case 0xD7: /* RST 2 */
 			push(_state.pc());
 			_state.pc() = 0x10;
 			break;
 		case 0xD9: /* RETI */
 			ret();
-			interrupt_enabled = true;
-			break;
-		case 0XDB: /* IN */
-			_state.a() = _handlerIn(readArgument8());
-			cycle = 10;
+			interrupt_enabled = 1;
 			break;
 		case 0xDF: /* RST 3 */
 			push(_state.pc());
@@ -433,7 +475,7 @@ namespace xprocessors {
 			_state.pc() = 0x20;
 			break;
 		case 0xE8: /* ADD SP */
-			add_sp(readArgument8());
+			_state.sp() = add_sp(static_cast<signed char>(readArgument8()));
 			break;
 		case 0xE9: /* JP HL */
 			_state.pc() = _state.hl();
@@ -453,15 +495,14 @@ namespace xprocessors {
 			_state.a() = read8(0xff00 + _state.c());
 			break;
 		case 0xF3: /* DI */
-			interrupt_enabled = 0;
+			interrupt_enabled = 2;
 			break;
 		case 0xF7: /* RST 6 */
 			push(_state.pc());
 			_state.pc() = 0x30;
 			break;
 		case 0xF8: /* LDHL */
-			_state.hl() = _state.sp();
-			add_hl(readArgument8());
+			_state.hl() = add_sp(static_cast<signed char>(readArgument8()));
 			break;
 		case 0xF9: /* SPHL */
 			_state.sp() = _state.hl();
@@ -513,13 +554,14 @@ namespace xprocessors {
 			break;
 		case opcodes::SLL_R:
 		case opcodes::SLL_HL:
-			decodeR(opcode, sll(decodeR(opcode)));
+			/* SWAP */
+			decodeR(opcode, swap(decodeR(opcode)));
 			break;
 		case opcodes::BIT_R:
 		case opcodes::BIT_HL:
 			_state.resetFlags(LR35902Flags::NF);
 			_state.setFlags(LR35902Flags::HF);
-			_state.setFlag(LR35902Flags::ZF, (1 << (decodeR(opcode) & ((opcode & 0b00111000) >> 3))));
+			_state.setFlag(LR35902Flags::ZF, (decodeR(opcode) & (1 << ((opcode >> 3) & 0x07))) == 0);
 			break;
 		case opcodes::SET_R:
 		case opcodes::SET_HL:
@@ -581,11 +623,10 @@ namespace xprocessors {
 		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
 		return result;
 	}
-	uint8_t LR35902::sll(const uint8_t value) {
-		const uint8_t result = (value << 1) | 1;
-		_state.setFlag(LR35902Flags::CF, ((value & 0x80) == 0x80));
+	uint8_t LR35902::swap(const uint8_t value) {
+		const uint8_t result = (value << 4) | (value >> 4);
+		_state.resetFlags(LR35902Flags::ALL);
 		_state.setFlag(LR35902Flags::ZF, (result == 0));
-		_state.resetFlags(LR35902Flags::HF | LR35902Flags::NF);
 		return result;
 	}
 
