@@ -1,10 +1,9 @@
 #include "z80.h"
-#include "types.h"
+#include "xprocessors.h"
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <format>
 #include <stdexcept>
 #include <array>
 #include "../registry.h"
@@ -74,8 +73,7 @@ namespace xprocessors {
 		auto opcode = readOpcode();
 		throw std::runtime_error("Illegal instruction " + opcode);
 	}
-	const uint8_t Z80::executeOne() {
-		uint16_t cycle = 0;
+	uint8_t Z80::executeOne() {
 		if (iff1) {
 			if (iff1_waiting)
 				iff1_waiting = false;
@@ -90,12 +88,11 @@ namespace xprocessors {
 						push(_state.pc());
 						_state.pc() = (_state.i() << 8) | interrupt_request;
 						_state.pc() = readArgument16();
-						cycle = 19;
 						break;
 					default:
 						return 0;
 					}
-					return cycle;
+					return 0;
 				}
 			}
 		}
@@ -103,7 +100,7 @@ namespace xprocessors {
 		const std::uint8_t opcode = (_halted) ? 0x00 : readOpcode();
 		current_prefix = NO;
 		decode_opcode(opcode);
-		return cycle;
+		return 0;
 	}
 
 	bool Z80::interrupt(const uint8_t inte) {

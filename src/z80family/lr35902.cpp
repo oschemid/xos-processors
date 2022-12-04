@@ -3,7 +3,6 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <format>
 #include <stdexcept>
 #include "../registry.h"
 #include "opcodes.h"
@@ -87,6 +86,8 @@ namespace xprocessors {
 			return !_state.carryFlag();
 		case 0b00011000:
 			return _state.carryFlag();
+		default:
+			return 0;
 		}
 	}
 	uint8_t LR35902::get_m() const {
@@ -294,7 +295,7 @@ namespace xprocessors {
 			}
 		}
 	}
-	const uint8_t LR35902::executeOne() {
+	uint8_t LR35902::executeOne() {
 		interrupt_handler();
 		if (interrupt_enabled == 1)
 			interrupt_enabled = 0;
@@ -336,10 +337,7 @@ namespace xprocessors {
 	/*********************************************************************************************************************/
 	void LR35902::decode_opcode(const uint8_t opcode) {
 		if (opcode_tables[opcode] != opcodes::UNIMPLEMENTED) {
-			switch (opcode_tables[opcode]) {
-			default:
-				COMMON_OPCODES_DECODING(opcodes, opcode_tables, opcode)
-			}
+			COMMON_OPCODES_DECODING(opcodes, opcode_tables, opcode)
 			return;
 		}
 		uint16_t cycle = 0;

@@ -67,7 +67,7 @@ namespace xprocessors {
 	public:
 		bool reset(const uint16_t = 0) override;
 
-		const uint8_t executeOne() override;
+		uint8_t executeOne() override;
 		bool interrupt(const uint8_t) override;
 
 		static inline constexpr bool parity(const uint8_t v) {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "types.h"
 #include "cpus.h"
 
 #include <stdexcept>
@@ -303,6 +302,8 @@ namespace xprocessors {
 			case 0x31:
 			case 0x32:
 				return _state.sp();
+			default:
+				return 0;
 			}
 		}
 		void decodeRR(const opcode_t opcode, const uint16_t value) override {
@@ -353,6 +354,8 @@ namespace xprocessors {
 			case 0x31:
 			case 0x32:
 				return _state.af();
+			default:
+				return 0;
 			}
 		}
 		void decodePop(const opcode_t opcode, const uint16_t value) override {
@@ -474,7 +477,7 @@ namespace xprocessors {
 	public:
 		bool reset(const uint16_t = 0) override;
 
-		const uint8_t executeOne() override;
+		uint8_t executeOne() override;
 		bool interrupt(const uint8_t) override;
 
 		static Cpu* create() { return new Z80(); }

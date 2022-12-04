@@ -3,7 +3,6 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <format>
 #include <stdexcept>
 #include "../registry.h"
 #include "opcodes.h"
@@ -157,7 +156,7 @@ namespace xprocessors {
 		_elapsed_cycles += 6;
 	}
 
-	const uint8_t Intel8080::executeOne() {
+	uint8_t Intel8080::executeOne() {
 		if (interrupt_enabled == 0 && interrupt_request < 8) {
 			interrupt_enabled = 2;
 			push(_state.pc());

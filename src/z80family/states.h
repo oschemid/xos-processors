@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "xprocessors.h"
 
 namespace xprocessors {
 	template<class F> class Z80FamilyState {

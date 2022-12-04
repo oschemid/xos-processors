@@ -56,7 +56,7 @@ void tests::lr35902_tests::timer(const uint64_t cycles) {
 	if (tac & 0x04) {
 		if (previous_cycles == 0)
 			previous_cycles = cycles;
-		const uint64_t delta = (cycles - previous_cycles) / frequency[tac & 0x03];
+		const uint16_t delta = static_cast<uint16_t>((cycles - previous_cycles) / frequency[tac & 0x03]);
 		if (delta > 0) {
 			uint16_t tima = memory2[0xff05 - 0x8000] + delta;
 			if (tima > 0xff) {

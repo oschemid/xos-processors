@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cpu.h"
+#include "xprocessors.h"
 #include <stdexcept>
 
 
@@ -94,6 +94,8 @@ namespace xprocessors {
 				return read8(_state.hl());
 			case 0x07:
 				return _state.a();
+			default:
+				return 0;
 			}
 		}
 		virtual void decodeR(const opcode_t opcode, const uint8_t value) {
@@ -135,6 +137,8 @@ namespace xprocessors {
 				return _state.hl();
 			case 0x30:
 				return _state.sp();
+			default:
+				return 0;
 			}
 		}
 		virtual void decodeRR(const opcode_t opcode, const uint16_t value) {
@@ -163,6 +167,8 @@ namespace xprocessors {
 				return _state.hl();
 			case 0x30:
 				return _state.af();
+			default:
+				return 0;
 			}
 		}
 		virtual void decodePop(const opcode_t opcode, const uint16_t value) {
@@ -201,6 +207,8 @@ namespace xprocessors {
 				return !_state.signFlag();
 			case 0b00111000:
 				return _state.signFlag();
+			default:
+				return 0;
 			}
 		}
 

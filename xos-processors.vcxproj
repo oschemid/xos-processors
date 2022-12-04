@@ -150,8 +150,7 @@
     <ClCompile Include="xos-processors.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\cpu.h" />
-    <ClInclude Include="include\types.h" />
+    <ClInclude Include="include\xprocessors.h" />
     <ClInclude Include="src\registry.h" />
     <ClInclude Include="src\z80family\cpus.h" />
     <ClInclude Include="src\z80family\i8080.h" />

@@ -1,6 +1,5 @@
 #pragma once
-#include "types.h"
-#include "cpu.h"
+#include "xprocessors.h"
 #include <map>
 
 

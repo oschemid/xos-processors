@@ -1,7 +1,6 @@
 #pragma once
 
-#include "cpu.h"
-#include "types.h"
+#include "xprocessors.h"
 
 using namespace xprocessors;
 
