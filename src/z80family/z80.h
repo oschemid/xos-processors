@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <array>
 #include <functional>
+#include <memory>
 
 namespace xprocessors {
 	typedef std::function<uint8_t(const uint8_t)> fnuint8_t;
@@ -480,6 +481,6 @@ namespace xprocessors {
 		uint8_t executeOne() override;
 		bool interrupt(const uint8_t) override;
 
-		static Cpu* create() { return new Z80(); }
+		static std::unique_ptr<Cpu> create() { return std::make_unique<Z80>(Z80()); }
 	};
 }

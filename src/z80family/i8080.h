@@ -2,6 +2,7 @@
 
 #include "states.h"
 #include "cpus.h"
+#include <memory>
 
 
 namespace xprocessors {
@@ -58,7 +59,6 @@ namespace xprocessors {
 		uint8_t get_m() const;
 
 		void daa();
-		//		void dad(const uint16_t);
 
 		void decode_opcode(const uint8_t);
 
@@ -77,6 +77,6 @@ namespace xprocessors {
 			return ((t ^= t >> 1) & 1) ? false : true;
 		}
 
-		static Cpu* create() { return new Intel8080(); }
+		static std::unique_ptr<Cpu> create() { return std::make_unique<Intel8080>(Intel8080()); }
 	};
 }
