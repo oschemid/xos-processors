@@ -2,26 +2,27 @@
 #include <cstdint>
 #include <string>
 #include <functional>
+#include <memory>
 
 
 namespace xprocessors {
-	using std::uint8_t;
-	using std::uint16_t;
-	using std::uint64_t;
-	using std::string;
+	using uint8_t = std::uint8_t;
+	using uint16_t = std::uint16_t;
+	using uint64_t = std::uint64_t;
+	using string = std::string;
 
-	typedef std::function<void(const uint8_t, const uint8_t)> out_fn;
-	typedef std::function<const uint8_t(const uint8_t)> in_fn;
-	typedef std::function<void(const uint16_t, const uint8_t)> write_fn;
-	typedef std::function<const uint8_t(const uint16_t)> read_fn;
+	using out_fn = std::function<void(const uint8_t, const uint8_t)>;
+	using in_fn = std::function<const uint8_t(const uint8_t)>;
+	using write_fn = std::function<void(const uint16_t, const uint8_t)>;
+	using read_fn = std::function<const uint8_t(const uint16_t)>;
 
-	typedef uint8_t opcode_t;
-	typedef uint8_t register8_t;
-	typedef uint16_t register16_t;
-	typedef union {
-		register8_t byte[2];
-		register16_t word;
-	} pair16_t;
+	using opcode_t = uint8_t;
+	using register8_t = uint8_t;
+	using register16_t = uint16_t;
+	using pair16_t = union { register8_t byte[2]; register16_t word; };
+
+	class Cpu;
+	using UCpu = std::unique_ptr<Cpu>;
 
 	class Cpu {
 	protected:
@@ -50,6 +51,6 @@ namespace xprocessors {
 		bool write(const write_fn fn) noexcept { _handlerWrite = fn; return true; }
 
 		// Factory
-		static Cpu* create(const string&);
+		static UCpu create(const string&);
 	};
 }

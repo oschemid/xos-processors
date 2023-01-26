@@ -15,19 +15,19 @@ CpuRegistry::CpuRegistry()
 CpuRegistry::~CpuRegistry()
 {}
 
-CpuRegistry& CpuRegistry::instance() {
+CpuRegistry& CpuRegistry::instance()
+{
 	static CpuRegistry _registry;
-
 	return _registry;
 }
 
-void CpuRegistry::add(const string& name, cpufactory_fn factory) {
+void CpuRegistry::add(const string& name, cpufactory_fn factory)
+{
 	_entries.insert({ name, CpuRegistryItem(name, factory) });
 }
 
-Cpu* CpuRegistry::create(const string& name) {
+UCpu CpuRegistry::create(const string& name)
+{
 	auto it = _entries.find(name);
-	if (it != _entries.end())
-		return it->second.factory()();
-	return nullptr;
+	return (it != _entries.end()) ? it->second.factory()() : nullptr;
 }

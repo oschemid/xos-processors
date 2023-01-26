@@ -1,15 +1,15 @@
 #pragma once
 #include "xprocessors.h"
 #include <map>
+#include <memory>
 
 
 namespace xprocessors {
 	class CpuRegistry {
 	public:
-		typedef std::function<Cpu* ()> cpufactory_fn;
+		using cpufactory_fn = std::function<UCpu ()>;
 
 	protected:
-
 		class CpuRegistryItem {
 		protected:
 			string _name;
@@ -26,11 +26,10 @@ namespace xprocessors {
 		~CpuRegistry();
 
 	public:
-		typedef std::function<Cpu* ()> cpufactory_fn;
 		static CpuRegistry& instance();
 
 		void add(const string&, cpufactory_fn);
-		Cpu* create(const string&);
+		UCpu create(const string&);
 	};
 
 	class CpuRegistryHandler {

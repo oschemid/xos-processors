@@ -2,6 +2,7 @@
 
 #include "states.h"
 #include "cpus.h"
+#include <memory>
 
 
 namespace xprocessors {
@@ -93,6 +94,6 @@ namespace xprocessors {
 			return ((t ^= t >> 1) & 1) ? false : true;
 		}
 
-		static Cpu* create() { return new LR35902(); }
+		static std::unique_ptr<Cpu> create() { return std::make_unique<LR35902>(LR35902()); }
 	};
 }
