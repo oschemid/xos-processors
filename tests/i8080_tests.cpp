@@ -17,7 +17,7 @@ void tests::i8080_tests::out(const uint8_t p, const uint8_t v) {
 		return;
 	}
 	if (p == 1) {
-		auto cpuc = static_cast<xprocessors::Intel8080*>(cpu);
+		auto cpuc = static_cast<xprocessors::Intel8080*>(&(*cpu));
 		uint8_t operation = cpuc->c();
 
 		if (operation == 2) { // print a character stored in E

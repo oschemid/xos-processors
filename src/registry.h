@@ -7,7 +7,7 @@
 namespace xprocessors {
 	class CpuRegistry {
 	public:
-		using cpufactory_fn = std::function<UCpu ()>;
+		using cpufactory_fn = std::function<Cpu::Ptr ()>;
 
 	protected:
 		class CpuRegistryItem {
@@ -29,7 +29,7 @@ namespace xprocessors {
 		static CpuRegistry& instance();
 
 		void add(const string&, cpufactory_fn);
-		UCpu create(const string&);
+		Cpu::Ptr create(const string&);
 	};
 
 	class CpuRegistryHandler {

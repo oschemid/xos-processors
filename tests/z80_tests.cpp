@@ -100,7 +100,7 @@ void tests::z80_tests::out(const uint8_t p, const uint8_t v) {
 		return;
 	}
 	if (p == 1) {
-		auto cpuc = static_cast<xprocessors::Z80*>(cpu);
+		auto cpuc = static_cast<xprocessors::Z80*>(&(*cpu));
 		uint8_t operation = cpuc->c();
 
 		if (operation == 2) { // print a character stored in E

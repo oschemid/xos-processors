@@ -5,7 +5,7 @@
 using namespace xprocessors;
 
 
-UCpu Cpu::create(const string& name)
+Cpu::Ptr Cpu::create(const string& name)
 {
 	return CpuRegistry::instance().create(name);
 }

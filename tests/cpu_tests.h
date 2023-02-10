@@ -8,7 +8,7 @@ namespace tests
 {
 	class cpu_tests {
 	protected:
-		Cpu* cpu;
+		Cpu::Ptr cpu;
 		uint8_t memory[0x10000];
 		bool finished;
 

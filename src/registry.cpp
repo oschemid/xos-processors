@@ -26,7 +26,7 @@ void CpuRegistry::add(const string& name, cpufactory_fn factory)
 	_entries.insert({ name, CpuRegistryItem(name, factory) });
 }
 
-UCpu CpuRegistry::create(const string& name)
+Cpu::Ptr CpuRegistry::create(const string& name)
 {
 	auto it = _entries.find(name);
 	return (it != _entries.end()) ? it->second.factory()() : nullptr;

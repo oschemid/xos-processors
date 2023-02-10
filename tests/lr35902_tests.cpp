@@ -142,7 +142,7 @@ const std::vector<std::pair<uint64_t, uint64_t>> opcodes = {
 bool tests::lr35902_tests::runTest(const string& filename, const uint64_t cycles_expected) {
 	load(0x0, filename);
 
-	auto cpuc = static_cast<LR35902*>(cpu);
+	auto cpuc = static_cast<LR35902*>(&(*cpu));
 	cpu->reset(0x100);
 
 	finished = false;
