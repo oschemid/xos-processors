@@ -1,41 +1,35 @@
 #pragma once
 #include "xprocessors.h"
 #include <map>
-#include <memory>
+#include <functional>
 
 
-namespace xprocessors {
-	class CpuRegistry {
+namespace xprocessors
+{
+	template<typename I> class Registry
+	{
 	public:
-		using cpufactory_fn = std::function<Cpu::Ptr ()>;
+		using factory_fn = std::function<I()>;
 
 	protected:
-		class CpuRegistryItem {
-		protected:
-			string _name;
-			cpufactory_fn _factory;
-
-		public:
-			CpuRegistryItem(const string&, const cpufactory_fn);
-			cpufactory_fn factory() const { return _factory; }
-		};
-
-		std::map<const string, const CpuRegistryItem> _entries;
+		std::map<const string, const factory_fn> _entries;
 	protected:
-		CpuRegistry();
-		~CpuRegistry();
+		Registry() = default;
+		~Registry() = default;
 
 	public:
-		static CpuRegistry& instance();
+		static Registry& instance() { static Registry _registry; return _registry; }
 
-		void add(const string&, cpufactory_fn);
-		Cpu::Ptr create(const string&);
+		void add(const string& name, factory_fn factory) { _entries.insert({ name, factory }); }
+		I create(const string& name) { auto it = _entries.find(name); return (it != _entries.end()) ? it->second() : nullptr; }
 	};
 
-	class CpuRegistryHandler {
+	template<typename I> class RegistryHandler
+	{
 	public:
-		CpuRegistryHandler(const string& name, CpuRegistry::cpufactory_fn fn) {
-			CpuRegistry::instance().add(name, fn);
+		RegistryHandler(const string& id, Registry<I>::factory_fn fn)
+		{
+			Registry<I>::instance().add(id, fn);
 		}
 	};
 }

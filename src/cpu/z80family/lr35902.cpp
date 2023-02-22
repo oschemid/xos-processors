@@ -4,14 +4,14 @@
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
-#include "../registry.h"
+#include "../../registry.h"
 #include "opcodes.h"
 #include "opcodes_cb.h"
 
 
 /*********************************************************************************************************************/
 // REGISTERING
-static xprocessors::CpuRegistryHandler reg("lr35902", xprocessors::LR35902::create);
+static xprocessors::RegistryHandler<xprocessors::Cpu::Ptr> reg("lr35902", xprocessors::LR35902::create);
 
 
 /*********************************************************************************************************************/
@@ -72,7 +72,7 @@ struct LR35902IO {
 
 namespace xprocessors {
 	LR35902::LR35902() :
-		Z80FamilyCpu() {
+		Z80FamilyCpu(Device::MEM_AVAILABLE) {
 		reset();
 	}
 	bool LR35902::checkCC(const opcode_t opcode) const
