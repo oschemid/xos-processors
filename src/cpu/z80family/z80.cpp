@@ -98,6 +98,8 @@ namespace xprocessors {
 		}
 
 		const std::uint8_t opcode = (_halted) ? 0x00 : readOpcode();
+		if (_halted)
+			_elapsed_cycles += Cost::READ_OPCODE;
 		current_prefix = NO;
 		decode_opcode(opcode);
 		return 0;
