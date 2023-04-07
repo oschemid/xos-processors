@@ -35,10 +35,10 @@ namespace xprocessors
 		{}
 
 		// Handlers
-		void in(const in_fn fn) noexcept { assert(_available & IO_AVAILABLE > 0); _handlerIn = fn; }
-		void out(const out_fn fn) noexcept { assert(_available & IO_AVAILABLE > 0); _handlerOut = fn; }
-		void read(const read_fn fn) noexcept { assert(_available & MEM_AVAILABLE > 0); _handlerRead = fn; }
-		void write(const write_fn fn) noexcept { assert(_available & MEM_AVAILABLE > 0); _handlerWrite = fn; }
+		void in(const in_fn fn) noexcept { assert(_available & IO_AVAILABLE); _handlerIn = fn; }
+		void out(const out_fn fn) noexcept { assert(_available & IO_AVAILABLE); _handlerOut = fn; }
+		void read(const read_fn fn) noexcept { assert(_available & MEM_AVAILABLE); _handlerRead = fn; }
+		void write(const write_fn fn) noexcept { assert(_available & MEM_AVAILABLE); _handlerWrite = fn; }
 
 	protected:
 		availableFlags _available;
