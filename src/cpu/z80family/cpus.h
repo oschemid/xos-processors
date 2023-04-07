@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xprocessors.h"
+#include "../cpu.h"
 #include <stdexcept>
 
 
@@ -213,7 +213,8 @@ namespace xprocessors {
 		}
 
 	protected:
-		Z80FamilyCpu() {
+		Z80FamilyCpu(Device::availableFlags flags) :
+			Cpu{ flags } {
 			reset();
 		}
 		virtual bool reset(const uint16_t = 0) override {

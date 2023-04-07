@@ -1,5 +1,5 @@
 #include "lr35902_tests.h"
-#include "../src/z80family/lr35902.h"
+#include "../src/cpu/z80family/lr35902.h"
 #include <iostream>
 #include <fstream>
 

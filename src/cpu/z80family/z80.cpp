@@ -6,16 +6,16 @@
 #include <iomanip>
 #include <stdexcept>
 #include <array>
-#include "../registry.h"
+#include "../../registry.h"
 
 
-static xprocessors::CpuRegistryHandler reg("Z80", xprocessors::Z80::create);
+static xprocessors::RegistryHandler<xprocessors::Cpu::Ptr> reg("Z80", xprocessors::Z80::create);
 
 using namespace xprocessors;
 
 namespace xprocessors {
 	Z80::Z80() :
-		Z80FamilyCpu() {
+		Z80FamilyCpu(Device::IO_AVAILABLE|Device::MEM_AVAILABLE) {
 		reset();
 	}
 

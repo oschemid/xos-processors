@@ -4,13 +4,13 @@
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
-#include "../registry.h"
+#include "../../registry.h"
 #include "opcodes.h"
 
 
 /*********************************************************************************************************************/
 // REGISTERING
-static xprocessors::CpuRegistryHandler reg("i8080", xprocessors::Intel8080::create);
+static xprocessors::RegistryHandler<xprocessors::Cpu::Ptr> reg("i8080", xprocessors::Intel8080::create);
 
 
 /*********************************************************************************************************************/
@@ -32,7 +32,7 @@ constexpr auto opcode_tables{ []() constexpr {
 
 namespace xprocessors {
 	Intel8080::Intel8080() :
-		Z80FamilyCpu() {
+		Z80FamilyCpu(Device::MEM_AVAILABLE|Device::IO_AVAILABLE) {
 		reset();
 	}
 	uint8_t Intel8080::get_m() const {

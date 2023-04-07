@@ -3,6 +3,7 @@
 #include <string>
 #include <functional>
 #include <memory>
+#include <cassert>
 
 
 namespace xprocessors
@@ -17,21 +18,16 @@ namespace xprocessors
 	using write_fn = std::function<void(const uint16_t, const uint8_t)>;
 	using read_fn = std::function<const uint8_t(const uint16_t)>;
 
-	using opcode_t = uint8_t;
-	using register8_t = uint8_t;
-	using register16_t = uint16_t;
-	using pair16_t = union { register8_t byte[2]; register16_t word; };
-
-	class Device
+	class device_t
 	{
-	protected:
-		out_fn _handlerOut;
-		in_fn _handlerIn;
-		read_fn _handlerRead;
-		write_fn _handlerWrite;
+	public:
+		using availableFlags = std::uint8_t;
+		static const availableFlags IO_AVAILABLE = 1;
+		static const availableFlags MEM_AVAILABLE = 2;
 
 	public:
-		Device() :
+		device_t(const availableFlags flags) :
+			_available{flags},
 			_handlerIn{nullptr},
 			_handlerOut{nullptr},
 			_handlerRead{nullptr},
@@ -39,19 +35,33 @@ namespace xprocessors
 		{}
 
 		// Handlers
-		void in(const in_fn fn) noexcept { _handlerIn = fn; }
-		void out(const out_fn fn) noexcept { _handlerOut = fn; }
-		void read(const read_fn fn) noexcept { _handlerRead = fn; }
-		void write(const write_fn fn) noexcept { _handlerWrite = fn; }
+		void in(const in_fn fn) noexcept { assert(_available & IO_AVAILABLE > 0); _handlerIn = fn; }
+		void out(const out_fn fn) noexcept { assert(_available & IO_AVAILABLE > 0); _handlerOut = fn; }
+		void read(const read_fn fn) noexcept { assert(_available & MEM_AVAILABLE > 0); _handlerRead = fn; }
+		void write(const write_fn fn) noexcept { assert(_available & MEM_AVAILABLE > 0); _handlerWrite = fn; }
+
+	protected:
+		availableFlags _available;
+		out_fn _handlerOut;
+		in_fn _handlerIn;
+		read_fn _handlerRead;
+		write_fn _handlerWrite;
 	};
 
-	class Cpu : public Device {
+	class Device : public device_t
+	{
+	public:
+		using Ptr = std::unique_ptr<Device>;
+
+		// Factory
+		static Ptr create(const string&);
+
 	protected:
-		uint64_t _elapsed_cycles;
-		uint64_t _executed_instructions;
+		Device(availableFlags flags) : device_t{ flags } {};
+	};
 
-		Cpu() : Device{}, _elapsed_cycles{ 0 }, _executed_instructions{ 0 } {};
-
+	class Cpu : public device_t
+	{
 	public:
 		using Ptr = std::unique_ptr<Cpu>;
 
@@ -64,5 +74,11 @@ namespace xprocessors
 
 		// Factory
 		static Ptr create(const string&);
+
+	protected:
+		uint64_t _elapsed_cycles;
+		uint64_t _executed_instructions;
+
+		Cpu(availableFlags flags) : device_t{ flags }, _elapsed_cycles{ 0 }, _executed_instructions{ 0 } {};
 	};
 }
