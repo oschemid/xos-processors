@@ -261,22 +261,14 @@ namespace xprocessors {
 				_state.setFlags(Intel8080Flags::CF);
 			break;
 
-		case 0xC7: /* RST 0 */
-			push(_state.pc());
-			_state.pc() = 0;
-			break;
-			//		case 0xCF: /* RST 1 */
-
 		case 0xD3: /* OUT */
 			_handlerOut(readArgument8(), _state.a());
 			_elapsed_cycles += 3;
 			break;
-			//		case 0xD7: /* RST 2 */
 		case 0XDB: /* IN */
 			_state.a() = _handlerIn(readArgument8());
 			_elapsed_cycles += 3;
 			break;
-			//		case 0xDF: /* RST 3 */
 
 		case 0xE3: /* XTHL */
 			tmp16 = read16(_state.sp());
@@ -284,7 +276,6 @@ namespace xprocessors {
 			_state.hl() = tmp16;
 			_elapsed_cycles += 2;
 			break;
-			//		case 0XE7: /* RST 4 */
 		case 0xE9: /* PCHL */
 			_state.pc() = _state.hl();
 			_elapsed_cycles++;
@@ -294,12 +285,10 @@ namespace xprocessors {
 			_state.de() = _state.hl();
 			_state.hl() = tmp16;
 			break;
-			//		case 0xEF: /* RST 5 */
 
 		case 0xF3: /* DI */
 			interrupt_enabled = 0;
 			break;
-			//		case 0xF7: /* RST 6 */
 		case 0xF9: /* SPHL */
 			_state.sp() = _state.hl();
 			_elapsed_cycles++;
@@ -307,7 +296,6 @@ namespace xprocessors {
 		case 0xFB: /* EI */
 			interrupt_enabled = 1;
 			break;
-			//		case 0xFF: /* RST 7 */
 
 		default: unimplemented(opcode); break;
 		}

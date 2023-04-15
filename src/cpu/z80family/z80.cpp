@@ -84,6 +84,9 @@ namespace xprocessors {
 					iff2 = false;
 					_halted = false;
 					switch (im) {
+					case interrupt_mode::mode_0:
+						decode_opcode(interrupt_request);
+						break;
 					case interrupt_mode::mode_2:
 						push(_state.pc());
 						_state.pc() = (_state.i() << 8) | interrupt_request;

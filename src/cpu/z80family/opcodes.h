@@ -14,6 +14,7 @@
 	CALL_CC, \
 	RET, \
 	RET_CC, \
+	RST, \
 	LD_R_R, \
 	LD_R_N, \
 	LD_RR_NN, \
@@ -142,6 +143,9 @@
 			table[i] = opcodes::ORA_N; \
 		if (i == 0b11111110) \
 			table[i] = opcodes::CMP_N; \
+		/* 0x11aaa111 */ \
+        if ((i & 0b11000111) == 0b11000111) \
+			table[i] = opcodes::RST; \
 	}
 
 #define COMMON_OPCODES_DECODING(opcodes, table, opcode) \
@@ -177,6 +181,10 @@
 		ret(checkCC(opcode)); \
 		_elapsed_cycles += Cost::EXTRARET; \
 		break; \
+	case opcodes::RST: \
+		push(_state.pc()); \
+		_state.pc() = opcode & 0b00111000; \
+        break; \
 	case opcodes::LD_R_N: \
 		decodeR(opcode >> 3, readArgument8()); \
 		break; \

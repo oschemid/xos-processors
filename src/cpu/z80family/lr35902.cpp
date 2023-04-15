@@ -437,29 +437,13 @@ namespace xprocessors {
 				_state.setFlags(LR35902Flags::CF);
 			break;
 
-		case 0xC7: /* RST 0 */
-			push(_state.pc());
-			_state.pc() = 0;
-			break;
 		case 0xCB:
 			decode_opcode_cb(readOpcode());
 			break;
-		case 0xCF: /* RST 1 */
-			push(_state.pc());
-			_state.pc() = 0x08;
-			break;
 
-		case 0xD7: /* RST 2 */
-			push(_state.pc());
-			_state.pc() = 0x10;
-			break;
 		case 0xD9: /* RETI */
 			ret();
 			interrupt_enabled = 1;
-			break;
-		case 0xDF: /* RST 3 */
-			push(_state.pc());
-			_state.pc() = 0x18;
 			break;
 
 		case 0xE0: /* LDH */
@@ -467,10 +451,6 @@ namespace xprocessors {
 			break;
 		case 0xE2: /* LD (C), A */
 			write8(0xff00 + _state.c(), _state.a());
-			break;
-		case 0xE7: /* RST 4 */
-			push(_state.pc());
-			_state.pc() = 0x20;
 			break;
 		case 0xE8: /* ADD SP */
 			_state.sp() = add_sp(static_cast<signed char>(readArgument8()));
@@ -482,10 +462,6 @@ namespace xprocessors {
 		case 0xEA: /* LD (), A */
 			write8(readArgument16(), _state.a());
 			break;
-		case 0xEF: /* RST 5 */
-			push(_state.pc());
-			_state.pc() = 0x28;
-			break;
 
 		case 0xF0: /* LDH */
 			_state.a() = read8(0xff00 + readArgument8());
@@ -495,10 +471,6 @@ namespace xprocessors {
 			break;
 		case 0xF3: /* DI */
 			interrupt_enabled = 2;
-			break;
-		case 0xF7: /* RST 6 */
-			push(_state.pc());
-			_state.pc() = 0x30;
 			break;
 		case 0xF8: /* LDHL */
 			_state.hl() = add_sp(static_cast<signed char>(readArgument8()));
@@ -512,10 +484,6 @@ namespace xprocessors {
 			break;
 		case 0xFB: /* EI */
 			interrupt_enabled = 1;
-			break;
-		case 0xFF: /* RST 6 */
-			push(_state.pc());
-			_state.pc() = 0x38;
 			break;
 
 		default: unimplemented(opcode); break;
