@@ -48,7 +48,6 @@ enum class opcode {
 	JR,
 	JR_C,
 	DJNZ,
-	RST,
 	IN_N,
 	OUT_N,
 };
@@ -90,8 +89,6 @@ constexpr auto opcodes{ []() constexpr {
 
 		if ((i & 0b11100111) == 0b00100000)
 			result[i] = opcode::JR_C;
-		if ((i & 0b11000111) == 0b11000111)
-			result[i] = opcode::RST;
 		switch (i) {
 			case 0x07:
 				result[i] = opcode::RLCA;
@@ -502,10 +499,6 @@ void Z80::decode_opcode(const uint8_t opcode) {
 			_state.pc() = _state.pc() + static_cast<signed char>(tmp8);
 			_elapsed_cycles += 6;
 		}
-		break;
-	case opcode::RST:
-		push(_state.pc());
-		_state.pc() = opcode - 0xc7;
 		break;
 	case opcode::IN_N:
 		_state.a() = _handlerIn(readArgument8());
