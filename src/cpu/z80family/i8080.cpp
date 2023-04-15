@@ -261,10 +261,10 @@ namespace xprocessors {
 				_state.setFlags(Intel8080Flags::CF);
 			break;
 
-		case 0xC7: /* RST 0 */
-			push(_state.pc());
-			_state.pc() = 0;
-			break;
+		//case 0xC7: /* RST 0 */
+		//	push(_state.pc());
+		//	_state.pc() = 0;
+		//	break;
 			//		case 0xCF: /* RST 1 */
 
 		case 0xD3: /* OUT */
