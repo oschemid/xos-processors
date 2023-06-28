@@ -87,6 +87,10 @@ namespace xprocessors {
 					case interrupt_mode::mode_0:
 						decode_opcode(interrupt_request);
 						break;
+					case interrupt_mode::mode_1:
+						push(_state.pc());
+						_state.pc() = 0x0038;
+						break;
 					case interrupt_mode::mode_2:
 						push(_state.pc());
 						_state.pc() = (_state.i() << 8) | interrupt_request;
