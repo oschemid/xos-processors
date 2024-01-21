@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -111,10 +111,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <ObjectFileName>$(InputDir)\$(IntDir)\</ObjectFileName>
+      <ModuleOutputFile>$(IntDir)</ModuleOutputFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -126,32 +129,45 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <Profile>false</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\cpu\cpu.cpp" />
     <ClCompile Include="src\cpu\z80family\i8080.cpp" />
     <ClCompile Include="src\cpu\z80family\lr35902.cpp" />
-    <ClCompile Include="src\cpu\z80family\z80.cpp" />
-    <ClCompile Include="src\cpu\z80family\z80opcodes.cpp" />
-    <ClCompile Include="src\cpu\z80family\z80opcodes_cb.cpp" />
-    <ClCompile Include="src\cpu\z80family\z80opcodes_ed.cpp" />
+    <ClCompile Include="src\cpu\z80family\z80oldsolution.cpp" />
+    <ClCompile Include="src\cpu\z80family\z80opcodes_cboldsolution.cpp" />
+    <ClCompile Include="src\cpu\z80family\z80opcodes_edoldsolution.cpp" />
+    <ClCompile Include="src\cpu\z80family\z80opcodes_oldsolution.cpp" />
+    <ClCompile Include="src\experimental\z80.cpp" />
+    <ClCompile Include="src\experimental\z80debugging.cpp" />
+    <ClCompile Include="src\experimental\z80debuggingopcodes.cpp" />
+    <ClCompile Include="src\experimental\z80opcodes.cpp" />
+    <ClCompile Include="src\experimental\z80opcodes_dd.cpp" />
+    <ClCompile Include="src\experimental\z80opcodes_ed.cpp" />
     <ClCompile Include="tests\cpu_tests.cpp" />
     <ClCompile Include="tests\i8080_tests.cpp" />
     <ClCompile Include="tests\lr35902_tests.cpp" />
+    <ClCompile Include="tests\z80ng_tests.cpp" />
     <ClCompile Include="tests\z80_tests.cpp" />
     <ClCompile Include="xos-processors.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\interfaces.h" />
     <ClInclude Include="include\xprocessors.h" />
     <ClInclude Include="src\cpu\cpu.h" />
     <ClInclude Include="include\mb14241.h" />
+    <ClInclude Include="src\cpu\z80family\z80oldsolution.h" />
+    <ClInclude Include="src\experimental\z80.h" />
+    <ClInclude Include="src\experimental\z80debugging.h" />
     <ClInclude Include="src\registry.h" />
     <ClInclude Include="src\cpu\z80family\cpus.h" />
     <ClInclude Include="src\cpu\z80family\i8080.h" />
@@ -159,10 +175,11 @@
     <ClInclude Include="src\cpu\z80family\opcodes.h" />
     <ClInclude Include="src\cpu\z80family\opcodes_cb.h" />
     <ClInclude Include="src\cpu\z80family\states.h" />
-    <ClInclude Include="src\cpu\z80family\z80.h" />
     <ClInclude Include="tests\cpu_tests.h" />
+    <ClInclude Include="tests\data\z80\perfs.h" />
     <ClInclude Include="tests\i8080_tests.h" />
     <ClInclude Include="tests\lr35902_tests.h" />
+    <ClInclude Include="tests\z80ng_tests.h" />
     <ClInclude Include="tests\z80_tests.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

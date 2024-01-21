@@ -1,4 +1,4 @@
-#include "z80.h"
+#include "z80oldsolution.h"
 #include "xprocessors.h"
 #include "opcodes.h"
 
@@ -12,7 +12,7 @@ enum class opcode {
 
 	LD_R_HL,
 	LD_HL_R,
-	ADD_HL,
+	ADD_WZ_TO_HL,
 	ADC_HL,
 	SUB_HL,
 	SBC_HL,
@@ -65,7 +65,7 @@ constexpr auto opcodes{ []() constexpr {
 				result[i] = opcode::LD_HL_R;
 		}
 		if (i == 0b10000110)
-			result[i] = opcode::ADD_HL;
+			result[i] = opcode::ADD_WZ_TO_HL;
 		if (i == 0b10001110)
 			result[i] = opcode::ADC_HL;
 		if (i == 0b10010110)
@@ -184,7 +184,7 @@ constexpr auto opcodes{ []() constexpr {
 using namespace xprocessors;
 
 /*********************************************************************************************************************/
-void Z80::decode_opcode(const uint8_t opcode) {
+void Z80Old::decode_opcode(const uint8_t opcode) {
 	uint16_t tmp16;
 	uint8_t tmp8;
 
@@ -306,7 +306,7 @@ void Z80::decode_opcode(const uint8_t opcode) {
 		write16(readArgument16(), decodeRR(opcode));
 		break;
 
-	case opcode::ADD_HL:
+	case opcode::ADD_WZ_TO_HL:
 		if (current_prefix == DD) {
 			add(read8(_state.ix() + static_cast<signed char>(readArgument8())));
 			_elapsed_cycles += 5;
@@ -515,7 +515,7 @@ void Z80::decode_opcode(const uint8_t opcode) {
 }
 
 /**********************************************************************************************************************/
-void Z80::add_hl(const uint16_t value) {
+void Z80Old::ADD_WZ_TO_HL(const uint16_t value) {
 	const uint16_t a = decodeRR(0x20);
 	const uint16_t s = a + value;
 
@@ -527,7 +527,7 @@ void Z80::add_hl(const uint16_t value) {
 		_state.setFlags(Z80State::HF);
 	_elapsed_cycles += 7;
 }
-void Z80::rla(const bool c) {
+void Z80Old::rla(const bool c) {
 	const bool carry = (c) ? _state.a() & 0x80 : _state.carryFlag();
 
 	_state.resetFlags(Z80State::NF | Z80State::HF | Z80State::CF);
@@ -536,7 +536,7 @@ void Z80::rla(const bool c) {
 	_state.a() <<= 1;
 	_state.a() |= (carry) ? 1 : 0;
 }
-void Z80::rra(const bool c) {
+void Z80Old::rra(const bool c) {
 	const bool carry = (c) ? _state.a() & 0x01 : _state.carryFlag();
 
 	_state.resetFlags(Z80State::NF | Z80State::HF | Z80State::CF);
@@ -545,7 +545,7 @@ void Z80::rra(const bool c) {
 	_state.a() >>= 1;
 	_state.a() |= (carry) ? 0x80 : 0;
 }
-void Z80::daa() {
+void Z80Old::daa() {
 	uint8_t carry = 0;
 	uint8_t diff = 0;
 	if ((_state.carryFlag()) || (_state.a() > 0x99)) {
@@ -571,7 +571,7 @@ void Z80::daa() {
 	_state.setP(_state.a());
 	_state.f() |= carry;
 }
-void Z80::add(const uint8_t value)
+void Z80Old::add(const uint8_t value)
 {
 	const uint16_t sum = _state.a() + value;
 	const uint16_t carryIns = sum ^ _state.a() ^ value;
@@ -587,7 +587,7 @@ void Z80::add(const uint8_t value)
 	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
 		_state.setFlags(Z80State::PF);
 }
-void Z80::adc(const uint8_t value)
+void Z80Old::adc(const uint8_t value)
 {
 	const uint8_t flag = _state.carryFlag() ? 1 : 0;
 	const uint16_t sum = _state.a() + value + flag;
@@ -604,7 +604,7 @@ void Z80::adc(const uint8_t value)
 	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
 		_state.setFlags(Z80State::PF);
 }
-void Z80::sub(const uint8_t value)
+void Z80Old::sub(const uint8_t value)
 {
 	const uint16_t sum = _state.a() - value;
 	const uint16_t carryIns = (sum ^ _state.a() ^ value);
@@ -622,7 +622,7 @@ void Z80::sub(const uint8_t value)
 	if ((carryIns >> 8) & 0x1)
 		_state.setFlags(Z80State::CF);
 }
-void Z80::sbc(const uint8_t value)
+void Z80Old::sbc(const uint8_t value)
 {
 	const uint8_t flag = _state.carryFlag() ? 1 : 0;
 	const uint16_t sum = _state.a() - value - flag;
@@ -641,7 +641,7 @@ void Z80::sbc(const uint8_t value)
 	if ((carryIns >> 8) & 0x1)
 		_state.setFlags(Z80State::CF);
 }
-void Z80::cmp(const uint8_t value)
+void Z80Old::cmp(const uint8_t value)
 {
 	const uint16_t sum = _state.a() - value;
 	const uint16_t carryIns = (sum ^ _state.a() ^ value);
@@ -660,7 +660,7 @@ void Z80::cmp(const uint8_t value)
 	if ((carryIns >> 8) & 0x1)
 		_state.setFlags(Z80State::CF);
 }
-void Z80::ana(const uint8_t value) {
+void Z80Old::ana(const uint8_t value) {
 	_state.a() &= value;
 
 	_state.f() = 0;
@@ -668,14 +668,14 @@ void Z80::ana(const uint8_t value) {
 	_state.setP(_state.a());
 	_state.setFlags(Z80State::HF);
 }
-void Z80::ora(const uint8_t value) {
+void Z80Old::ora(const uint8_t value) {
 	_state.a() |= value;
 
 	_state.f() = 0;
 	_state.setSZXY(_state.a());
 	_state.setP(_state.a());
 }
-void Z80::xra(const uint8_t value) {
+void Z80Old::xra(const uint8_t value) {
 	_state.a() ^= value;
 
 	_state.f() = 0;
@@ -683,7 +683,7 @@ void Z80::xra(const uint8_t value) {
 	_state.setP(_state.a());
 }
 
-uint8_t Z80::inc(const uint8_t value) {
+uint8_t Z80Old::inc(const uint8_t value) {
 	uint8_t result = value + 1;
 	_state.resetFlags(Z80State::NF | Z80State::HF | Z80State::VF);
 	_state.setSZXY(result);
@@ -693,7 +693,7 @@ uint8_t Z80::inc(const uint8_t value) {
 		_state.setFlags(Z80State::HF);
 	return result;
 }
-uint8_t Z80::dec(const uint8_t value) {
+uint8_t Z80Old::dec(const uint8_t value) {
 	uint8_t result = value - 1;
 	_state.resetFlags(Z80State::HF | Z80State::VF);
 	_state.setFlags(Z80State::NF);
@@ -705,12 +705,12 @@ uint8_t Z80::dec(const uint8_t value) {
 	return result;
 }
 
-void Z80::exchange_de_hl() {
+void Z80Old::exchange_de_hl() {
 	const uint16_t t = _state.de();
 	_state.de() = _state.hl();
 	_state.hl() = t;
 }
-uint16_t Z80::exchange_sp(const uint16_t hl) {
+uint16_t Z80Old::exchange_sp(const uint16_t hl) {
 	const uint16_t sp = read16(_state.sp());
 	write16(_state.sp(), hl);
 	return sp;

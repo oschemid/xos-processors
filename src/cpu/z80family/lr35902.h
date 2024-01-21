@@ -53,7 +53,7 @@ namespace xprocessors {
 		void ora(const uint8_t) override;
 		void xra(const uint8_t) override;
 		void cmp(const uint8_t) override;
-		void add_hl(const uint16_t) override;
+		void ADD_WZ_TO_HL(const uint16_t) override;
 		uint16_t add_sp(const uint8_t);
 
 		uint8_t rlc(const uint8_t);

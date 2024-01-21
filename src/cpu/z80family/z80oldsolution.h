@@ -174,7 +174,7 @@ namespace xprocessors {
 		static const uint8_t EXTRACALL2 = 0;
 		static const uint8_t EXTRAHALT = 0;
 	};
-	class Z80 : public Z80FamilyCpu<Z80State, Z80Costs>
+	class Z80Old : public Z80FamilyCpu<Z80State, Z80Costs>
 	{
 	protected:
 		enum prefix {
@@ -430,7 +430,7 @@ namespace xprocessors {
 		void xra(const uint8_t) override;
 		void ana(const uint8_t) override;
 		void cmp(const uint8_t) override;
-		void add_hl(const uint16_t) override;
+		void ADD_WZ_TO_HL(const uint16_t) override;
 
 		uint8_t inc(const uint8_t) override;
 		uint8_t dec(const uint8_t) override;
@@ -473,7 +473,7 @@ namespace xprocessors {
 		void unimplemented();
 		void illegal();
 
-		Z80();
+		Z80Old();
 
 	public:
 		bool reset(const uint16_t = 0) override;
@@ -481,6 +481,6 @@ namespace xprocessors {
 		uint8_t executeOne() override;
 		bool interrupt(const uint8_t) override;
 
-		static std::unique_ptr<Cpu> create() { return std::make_unique<Z80>(Z80()); }
+		static std::unique_ptr<Cpu> create() { return std::make_unique<Z80Old>(Z80Old()); }
 	};
 }

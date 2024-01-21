@@ -1,4 +1,4 @@
-#include "z80.h"
+#include "z80oldsolution.h"
 #include "xprocessors.h"
 #include <string>
 #include <sstream>
@@ -9,18 +9,18 @@
 #include "../../registry.h"
 
 
-static xprocessors::RegistryHandler<xprocessors::Cpu::Ptr> reg("Z80", xprocessors::Z80::create);
+static xprocessors::RegistryHandler<xprocessors::Cpu::Ptr> reg("Z80", xprocessors::Z80Old::create);
 
 using namespace xprocessors;
 
 namespace xprocessors {
-	Z80::Z80() :
+	Z80Old::Z80Old() :
 		Z80FamilyCpu(Device::IO_AVAILABLE|Device::MEM_AVAILABLE) {
 		reset();
 	}
 
 	// Function : (HL) <- fn((HL)) or (IX+d) <- fn((IX+d)) or (IY+d) <- fn((IY+d))
-	void Z80::apply_hl(const fnuint8_t fn, const prefix p, const int8_t d) {
+	void Z80Old::apply_hl(const fnuint8_t fn, const prefix p, const int8_t d) {
 		switch (p) {
 		case NO:
 			write8(_state.hl(), fn(read8(_state.hl())));
@@ -37,11 +37,11 @@ namespace xprocessors {
 		}
 	}
 
-	void Z80::apply_r(const fnuint8_t fn, const opcode_t opcode, const prefix p) {
+	void Z80Old::apply_r(const fnuint8_t fn, const opcode_t opcode, const prefix p) {
 		decodeR(opcode, fn(decodeR(opcode)));
 	}
 
-	void Z80::apply_ixy_r(const fnuint8_t fn, const opcode_t opcode, const prefix p, const int8_t d) {
+	void Z80Old::apply_ixy_r(const fnuint8_t fn, const opcode_t opcode, const prefix p, const int8_t d) {
 		switch (p) {
 		case NO:
 			decodeR(opcode, fn(decodeR(opcode)));
@@ -60,20 +60,20 @@ namespace xprocessors {
 	}
 
 	/******************************************************************************/
-	void Z80::unimplemented()
+	void Z80Old::unimplemented()
 	{
 		_state.pc()--;
 		auto opcode = readOpcode();
 		std::cout << std::hex << int(opcode) << std::endl;
 		throw std::runtime_error("Instruction not implemented");
 	}
-	void Z80::illegal()
+	void Z80Old::illegal()
 	{
 		_state.pc()--;
 		auto opcode = readOpcode();
 		throw std::runtime_error("Illegal instruction " + opcode);
 	}
-	uint8_t Z80::executeOne() {
+	uint8_t Z80Old::executeOne() {
 		if (iff1) {
 			if (iff1_waiting)
 				iff1_waiting = false;
@@ -112,7 +112,7 @@ namespace xprocessors {
 		return 0;
 	}
 
-	bool Z80::interrupt(const uint8_t inte) {
+	bool Z80Old::interrupt(const uint8_t inte) {
 		if (iff1) {
 			interrupt_waiting = true;
 			interrupt_request = inte;
@@ -120,7 +120,7 @@ namespace xprocessors {
 		return true;
 	}
 
-	bool Z80::reset(const uint16_t address) {
+	bool Z80Old::reset(const uint16_t address) {
 		_elapsed_cycles = 0;
 
 		iff1 = false;
@@ -133,7 +133,7 @@ namespace xprocessors {
 	}
 }
 
-bool Z80::checkCondition2(const opcode_t opcode) const
+bool Z80Old::checkCondition2(const opcode_t opcode) const
 {
 	switch (opcode & 0b00011000) {
 	case 0b00000000:

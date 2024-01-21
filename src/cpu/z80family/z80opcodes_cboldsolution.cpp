@@ -1,4 +1,4 @@
-#include "z80.h"
+#include "z80oldsolution.h"
 #include "xprocessors.h"
 #include "opcodes_cb.h"
 
@@ -20,7 +20,7 @@ constexpr auto opcodes{ []() constexpr {
 using namespace xprocessors;
 
 /*********************************************************************************************************************/
-void Z80::decode_opcode_cb(const prefix p) {
+void Z80Old::decode_opcode_cb(const prefix p) {
 	const int8_t delta = (p != NO) ? static_cast<int8_t>(readArgument8()) : 0;
 	const opcode_t opcode = readOpcode();
 
@@ -108,63 +108,63 @@ void Z80::decode_opcode_cb(const prefix p) {
 }
 /*********************************************************************************************************************/
 
-uint8_t Z80::rlc(const uint8_t value) {
+uint8_t Z80Old::rlc(const uint8_t value) {
 	const uint8_t result = (value << 1) | (value >> 7);
 	_state.f() = (value & 0x80) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::rrc(const uint8_t value) {
+uint8_t Z80Old::rrc(const uint8_t value) {
 	const uint8_t result = (value >> 1) | (value << 7);
 	_state.f() = (value & 0x01) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::rr(const uint8_t value) {
+uint8_t Z80Old::rr(const uint8_t value) {
 	const uint8_t result = (value >> 1) | ((_state.carryFlag()) ? 0x80 : 0);
 	_state.f() = (value & 0x01) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::rl(const uint8_t value) {
+uint8_t Z80Old::rl(const uint8_t value) {
 	const uint8_t result = (value << 1) | ((_state.carryFlag()) ? 0x01 : 0);
 	_state.f() = (value & 0x80) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::srl(const uint8_t value) {
+uint8_t Z80Old::srl(const uint8_t value) {
 	const uint8_t result = value >> 1;
 	_state.f() = (value & 0x01) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::sra(const uint8_t value) {
+uint8_t Z80Old::sra(const uint8_t value) {
 	const uint8_t result = value >> 1 | (value & 0x80);
 	_state.f() = (value & 0x01) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::sla(const uint8_t value) {
+uint8_t Z80Old::sla(const uint8_t value) {
 	const uint8_t result = value << 1;
 	_state.f() = (value & 0x80) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-uint8_t Z80::sll(const uint8_t value) {
+uint8_t Z80Old::sll(const uint8_t value) {
 	const uint8_t result = (value << 1) | 1;
 	_state.f() = (value & 0x80) ? Z80State::CF : 0;
 	_state.setSZXY(result);
 	_state.setP(result);
 	return result;
 }
-void Z80::bit(const uint8_t value, const uint8_t b) {
+void Z80Old::bit(const uint8_t value, const uint8_t b) {
 	_state.f() &= Z80State::CF;
 	_state.f() |= Z80State::HF;
 	_state.f() |= (value & (1 << b)) ? Z80State::SF : Z80State::ZF | Z80State::VF;

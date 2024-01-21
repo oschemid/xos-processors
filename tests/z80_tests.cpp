@@ -1,8 +1,11 @@
 #include "z80_tests.h"
-#include "../src/cpu/z80family/z80.h"
+#include "../src/cpu/z80family/z80oldsolution.h"
 #include <iostream>
 #include <fstream>
+#include <chrono>
+#include "data/z80/perfs.h"
 
+using namespace std::chrono;
 
 tests::z80_tests::z80_tests() :
 	cpu_tests() {
@@ -100,7 +103,7 @@ void tests::z80_tests::out(const uint8_t p, const uint8_t v) {
 		return;
 	}
 	if (p == 1) {
-		auto cpuc = static_cast<xprocessors::Z80*>(&(*cpu));
+		auto cpuc = static_cast<xprocessors::Z80Old*>(&(*cpu));
 		uint8_t operation = cpuc->c();
 
 		if (operation == 2) { // print a character stored in E
@@ -128,26 +131,56 @@ bool tests::z80_tests::runTest(const string& filename, const uint64_t cycles_exp
 	cpu->out([this](const uint8_t p, const uint8_t v) { out(p, v); });
 
 	finished = false;
+	auto start = high_resolution_clock::now();
+	auto cpuc = static_cast<xprocessors::Z80Old*>(&(*cpu));
+
 	while (!finished) {
 		cycles += cpu->executeOne();
 	}
+	auto stop = high_resolution_clock::now();
+	auto duration = duration_cast<microseconds>(stop - start);
+	std::cout << duration.count() << std::endl;
 	if (cycles_expected > 0)
 		std::cout << std::endl << "Expected cycles : " << cycles_expected << " - Cycles : " << cpu->elapsed_cycles() << "(" << cpu->executed_instructions() << " instructions)";
 	return true;
 }
 
+bool tests::z80_tests::runTestPerfs(const uint64_t cycles_expected) {
+	uint64_t total_cycles = 0;
+	uint64_t total_microseconds = 0;
+	for (auto [name, mem] : perfs_tests) {
+		cpu->reset();
+		uint8_t i = 0;
+		for (auto m : mem) {
+			memory[i++] = m;
+		}
+		auto start = high_resolution_clock::now();
+		while (cpu->elapsed_cycles() < cycles_expected) {
+			cpu->executeOne();
+		}
+		auto stop = high_resolution_clock::now();
+		auto duration = duration_cast<microseconds>(stop - start);
+		total_cycles += cpu->elapsed_cycles();
+		total_microseconds += duration.count();
+		std::cout << name << ": " << duration.count() << std::endl;
+	}
+	std::cout << "total : " << total_cycles / total_microseconds << " MHz" << std::endl;
+	return true;
+}
+
 bool tests::z80_tests::run() {
-	std::cout << "check cycles" << std::endl;
-	runTestCycles(opcodes);
-	std::cout << std::endl;
-	std::cout << "prelim.com" << std::endl;
-	runTest("tests/data/Z80/prelim.com", 8721Ui64);
-	std::cout << std::endl;
-	std::cout << "zexdoc.com" << std::endl;
-	runTest("tests/data/Z80/zexdoc.com", 46734978649Ui64);
-	std::cout << std::endl;
+//	std::cout << "check cycles" << std::endl;
+//	runTestCycles(opcodes);
+//	std::cout << std::endl;
+//	std::cout << "prelim.com" << std::endl;
+//	runTest("tests/data/Z80/prelim.com", 8721Ui64);
+//	std::cout << std::endl;
+//	std::cout << "zexdoc.com" << std::endl;
+//	runTest("tests/data/Z80/zexdoc.com", 46734978649Ui64);
+//	std::cout << std::endl;
 	//	std::cout << "zexall.com" << std::endl;
 	//	runTest("data/cpu/Z80/zexall.com", 8721Ui64);
 	//	std::cout << std::endl;
+//	runTestPerfs(1000000000);
 	return true;
 }

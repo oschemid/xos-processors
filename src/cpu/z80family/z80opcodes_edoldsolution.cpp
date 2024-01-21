@@ -1,4 +1,4 @@
-#include "z80.h"
+#include "z80oldsolution.h"
 #include "xprocessors.h"
 #include <array>
 
@@ -150,7 +150,7 @@ constexpr auto opcodes{ []() constexpr {
 using namespace xprocessors;
 
 /*********************************************************************************************************************/
-void Z80::decode_opcode_ed() {
+void Z80Old::decode_opcode_ed() {
 	const opcode_t opcode = readOpcode();
 	if (opcodes[opcode] != opcode::UNIMPLEMENTED) {
 
@@ -313,7 +313,7 @@ void Z80::decode_opcode_ed() {
 	}
 }
 
-void Z80::rrd() {
+void Z80Old::rrd() {
 	uint8_t tmp = _state.a() & 0x0f;
 	uint8_t mem = read8(_state.hl());
 	_state.a() = (_state.a() & 0xf0) | (mem & 0x0f);
@@ -325,7 +325,7 @@ void Z80::rrd() {
 	_state.setP(_state.a());
 }
 
-void Z80::rld() {
+void Z80Old::rld() {
 	uint8_t tmp = _state.a() & 0x0f;
 	uint8_t mem = read8(_state.hl());
 	_state.a() = (_state.a() & 0xf0) | (mem >> 4);
@@ -337,7 +337,7 @@ void Z80::rld() {
 	_state.setP(_state.a());
 }
 
-void Z80::adc_ss(const opcode_t opcode) {
+void Z80Old::adc_ss(const opcode_t opcode) {
 	const uint16_t b = decodeRR(opcode);
 	const uint32_t s = _state.hl() + b + (_state.carryFlag() ? 1 : 0);
 	const uint32_t c = s ^ _state.hl() ^ b;
@@ -352,7 +352,8 @@ void Z80::adc_ss(const opcode_t opcode) {
 	_state.setSZXY(_state.hl());
 	_elapsed_cycles += 7;
 }
-void Z80::sbc_ss(const opcode_t opcode) {
+
+void Z80Old::sbc_ss(const opcode_t opcode) {
 	const uint16_t b = decodeRR(opcode);
 	const uint32_t s = _state.hl() - b - (_state.carryFlag() ? 1 : 0);
 	const uint32_t c = (s ^ _state.hl() ^ b) & 0x18000;
@@ -368,7 +369,7 @@ void Z80::sbc_ss(const opcode_t opcode) {
 	_state.setSZXY(_state.hl());
 	_elapsed_cycles += 7;
 }
-void Z80::neg() {
+void Z80Old::neg() {
 	const uint8_t ap = _state.a();
 	_state.a() = -_state.a();
 
@@ -382,7 +383,7 @@ void Z80::neg() {
 	if ((_state.a() ^ ap) & 0x10)
 		_state.setFlags(Z80State::HF);
 }
-void Z80::cpd() {
+void Z80Old::cpd() {
 	bool carryFlag = _state.carryFlag();
 	cmp(read8(_state.hl()));
 	if (carryFlag)
@@ -398,7 +399,7 @@ void Z80::cpd() {
 		_state.resetFlags(Z80State::PF);
 	_elapsed_cycles += 5;
 }
-void Z80::cpi() {
+void Z80Old::cpi() {
 	bool carryFlag = _state.carryFlag();
 	cmp(read8(_state.hl()));
 	if (carryFlag)
@@ -414,7 +415,7 @@ void Z80::cpi() {
 		_state.resetFlags(Z80State::PF);
 	_elapsed_cycles += 5;
 }
-void Z80::ldd() {
+void Z80Old::ldd() {
 	write8(de(), read8(_state.hl()));
 	--_state.hl();
 	--_state.bc();
@@ -423,7 +424,7 @@ void Z80::ldd() {
 	if (_state.bc() != 0)
 		_state.setFlags(Z80State::PF);
 }
-void Z80::ldi() {
+void Z80Old::ldi() {
 	write8(de(), read8(_state.hl()));
 	++_state.hl();
 	--_state.bc();
@@ -432,7 +433,7 @@ void Z80::ldi() {
 	if (_state.bc() != 0)
 		_state.setFlags(Z80State::PF);
 }
-void Z80::in_c(const opcode_t opcode) {
+void Z80Old::in_c(const opcode_t opcode) {
 	uint8_t val = _handlerIn(_state.c());
 
 	if (opcode != 0x70)
@@ -441,7 +442,7 @@ void Z80::in_c(const opcode_t opcode) {
 	_state.setSZXY(val);
 	_state.setP(val);
 }
-void Z80::ini() {
+void Z80Old::ini() {
 	write8(_state.hl(), _handlerIn(_state.c()));
 	++_state.hl();
 	--_state.b();
@@ -449,7 +450,7 @@ void Z80::ini() {
 	_state.setFlags(Z80State::NF);
 	_elapsed_cycles += 5;
 }
-void Z80::ind() {
+void Z80Old::ind() {
 	write8(_state.hl(), _handlerIn(_state.c()));
 	--_state.hl();
 	--_state.b();
@@ -457,11 +458,11 @@ void Z80::ind() {
 	_state.setFlags(Z80State::NF);
 	_elapsed_cycles += 5;
 }
-void Z80::out_c(const opcode_t opcode) {
+void Z80Old::out_c(const opcode_t opcode) {
 	uint8_t val = (opcode == 0x70) ? 0 : decodeR(opcode);
 	_handlerOut(_state.c(), val);
 }
-void Z80::outi() {
+void Z80Old::outi() {
 	_handlerOut(_state.c(), read8(_state.hl()));
 	++_state.hl();
 	--_state.b();
@@ -469,7 +470,7 @@ void Z80::outi() {
 	_state.setFlags(Z80State::NF);
 	_elapsed_cycles += 5;
 }
-void Z80::outd() {
+void Z80Old::outd() {
 	_handlerOut(_state.c(), read8(_state.hl()));
 	--_state.hl();
 	--_state.b();

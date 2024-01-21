@@ -145,7 +145,7 @@ namespace xprocessors {
 		_state.adjustSZ(_state.a());
 		_state.setParityFlag(parity(_state.a()));
 	}
-	void Intel8080::add_hl(const uint16_t value)
+	void Intel8080::ADD_WZ_TO_HL(const uint16_t value)
 	{
 		uint32_t res = _state.hl() + value;
 		_state.hl() = res & 0xffff;

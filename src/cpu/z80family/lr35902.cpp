@@ -196,7 +196,7 @@ namespace xprocessors {
 		if (sum > 0xff)
 			_state.setFlags(LR35902Flags::CF);
 	}
-	void LR35902::add_hl(const uint16_t value)
+	void LR35902::ADD_WZ_TO_HL(const uint16_t value)
 	{
 		uint32_t res = _state.hl() + value;
 		_state.resetFlags(LR35902Flags::NF);
@@ -472,7 +472,7 @@ namespace xprocessors {
 		case 0xF3: /* DI */
 			interrupt_enabled = 2;
 			break;
-		case 0xF8: /* LDHL */
+		case 0xF8: /* LD_L_INTO_H */
 			_state.hl() = add_sp(static_cast<signed char>(readArgument8()));
 			break;
 		case 0xF9: /* SPHL */

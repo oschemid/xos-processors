@@ -197,7 +197,7 @@
 		decodeRR(opcode, readArgument16()); \
 		break; \
 	case opcodes::ADD_HL_RR: \
-		add_hl(decodeRR(opcode)); \
+		ADD_WZ_TO_HL(decodeRR(opcode)); \
 		break; \
 	case opcodes::LD_BC_A: \
 		write8(_state.bc(), _state.a()); \
