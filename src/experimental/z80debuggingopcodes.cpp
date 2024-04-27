@@ -4,29 +4,29 @@
 using namespace xprocessors::cpu;
 
 
-uint8_t getMemory(const uint8_t* memory, const uint16_t address)
+uint8_t getMemory(std::function<uint8_t(const uint16_t)> memory_fn, const uint16_t address)
 {
-	return memory[address];
+	return memory_fn(address);
 }
-unsigned int getN(const uint8_t* memory, const uint16_t address)
+unsigned int getN(std::function<uint8_t(const uint16_t)> memory_fn, const uint16_t address)
 {
-	return static_cast<unsigned int>(memory[address]);
+	return static_cast<unsigned int>(memory_fn(address));
 }
-unsigned int getNN(const uint8_t* memory, const uint16_t address)
+unsigned int getNN(std::function<uint8_t(const uint16_t)> memory_fn, const uint16_t address)
 {
-	return static_cast<unsigned int>(memory[address] | (memory[address+1]<<8));
+	return static_cast<unsigned int>(memory_fn(address) | (memory_fn(address+1)<<8));
 }
 
-void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
+void Z80debugging::disassemblyopcode(const Z80* cpu, std::function<uint8_t(const uint16_t)> memory_fn)
 {
 	_disasm_fd << std::hex << cpu->pc << " ";
-	switch (getMemory(memory, cpu->pc))
+	switch (getMemory(memory_fn, cpu->pc))
 	{
 	case 0x00:
 		_disasm_fd << "NOP";
 		break;
 	case 0x01:
-		_disasm_fd << "LD BC," << getNN(memory, cpu->pc+1);
+		_disasm_fd << "LD BC," << getNN(memory_fn, cpu->pc+1);
 		break;
 	case 0x02:
 		_disasm_fd << "LD (BC),A";
@@ -41,7 +41,7 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC B";
 		break;
 	case 0x06:
-		_disasm_fd << "LD B," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD B," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x07:
 		_disasm_fd << "RLCA";
@@ -65,16 +65,16 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC C";
 		break;
 	case 0x0e:
-		_disasm_fd << "LD C," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD C," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x0f:
 		_disasm_fd << "RRCA";
 		break;
 	case 0x10:
-		_disasm_fd << "DJNZ " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "DJNZ " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x11:
-		_disasm_fd << "LD DE," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "LD DE," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x12:
 		_disasm_fd << "LD (DE),A";
@@ -89,13 +89,13 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC D";
 		break;
 	case 0x16:
-		_disasm_fd << "LD D," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD D," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x17:
 		_disasm_fd << "RLA";
 		break;
 	case 0x18:
-		_disasm_fd << "JR " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "JR " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x19:
 		_disasm_fd << "ADD HL,DE";
@@ -113,19 +113,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC E";
 		break;
 	case 0x1e:
-		_disasm_fd << "LD E," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD E," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x1f:
 		_disasm_fd << "RRA";
 		break;
 	case 0x20:
-		_disasm_fd << "JR NZ," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "JR NZ," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x21:
-		_disasm_fd << "LD HL," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "LD HL," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x22:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 1) << "),HL";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 1) << "),HL";
 		break;
 	case 0x23:
 		_disasm_fd << "INC HL";
@@ -137,19 +137,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC H";
 		break;
 	case 0x26:
-		_disasm_fd << "LD H," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD H," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x27:
 		_disasm_fd << "DAA";
 		break;
 	case 0x28:
-		_disasm_fd << "JR Z," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "JR Z," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x29:
 		_disasm_fd << "ADD HL,HL";
 		break;
 	case 0x2a:
-		_disasm_fd << "LD HL,(" << getNN(memory, cpu->pc + 1) << ")";
+		_disasm_fd << "LD HL,(" << getNN(memory_fn, cpu->pc + 1) << ")";
 		break;
 	case 0x2b:
 		_disasm_fd << "DEC HL";
@@ -161,19 +161,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC L";
 		break;
 	case 0x2e:
-		_disasm_fd << "LD L," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD L," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x2f:
 		_disasm_fd << "CPL";
 		break;
 	case 0x30:
-		_disasm_fd << "JR NC," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "JR NC," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x31:
-		_disasm_fd << "LD SP," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "LD SP," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x32:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 1) <<"),A";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 1) <<"),A";
 		break;
 	case 0x33:
 		_disasm_fd << "INC SP";
@@ -185,19 +185,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC (HL)";
 		break;
 	case 0x36:
-		_disasm_fd << "LD (HL)," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD (HL)," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x37:
 		_disasm_fd << "SCF";
 		break;
 	case 0x38:
-		_disasm_fd << "JR C," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "JR C," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x39:
 		_disasm_fd << "ADD HL,SP";
 		break;
 	case 0x3a:
-		_disasm_fd << "LD A,(" << getNN(memory, cpu->pc + 1) << ")";
+		_disasm_fd << "LD A,(" << getNN(memory_fn, cpu->pc + 1) << ")";
 		break;
 	case 0x3b:
 		_disasm_fd << "DEC SP";
@@ -209,7 +209,7 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC A";
 		break;
 	case 0x3e:
-		_disasm_fd << "LD A," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD A," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x3f:
 		_disasm_fd << "CCF";
@@ -605,19 +605,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "POP BC";
 		break;
 	case 0xc2:
-		_disasm_fd << "JP NZ," << getNN(memory, cpu->pc+1);
+		_disasm_fd << "JP NZ," << getNN(memory_fn, cpu->pc+1);
 		break;
 	case 0xc3:
-		_disasm_fd << "JP " << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP " << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xc4:
-		_disasm_fd << "CALL NZ," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL NZ," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xc5:
 		_disasm_fd << "PUSH BC";
 		break;
 	case 0xc6:
-		_disasm_fd << "ADD A," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "ADD A," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xc7:
 		_disasm_fd << "RST 00";
@@ -629,19 +629,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "RET";
 		break;
 	case 0xca:
-		_disasm_fd << "JP Z," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP Z," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xcb:
 		_disasm_fd << "CBBB";
 		break;
 	case 0xcc:
-		_disasm_fd << "CALL Z," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL Z," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xcd:
-		_disasm_fd << "CALL " << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL " << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xce:
-		_disasm_fd << "ADC A," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "ADC A," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xcf:
 		_disasm_fd << "RST 08";
@@ -653,19 +653,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "POP DE";
 		break;
 	case 0xd2:
-		_disasm_fd << "JP NC," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP NC," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xd3:
-		_disasm_fd << "OUT (" << getN(memory, cpu->pc + 1) << "),A";
+		_disasm_fd << "OUT (" << getN(memory_fn, cpu->pc + 1) << "),A";
 		break;
 	case 0xd4:
-		_disasm_fd << "CALL NC," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL NC," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xd5:
 		_disasm_fd << "PUSH DE";
 		break;
 	case 0xd6:
-		_disasm_fd << "SUB " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "SUB " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xd7:
 		_disasm_fd << "RST 10";
@@ -677,19 +677,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "EXX";
 		break;
 	case 0xda:
-		_disasm_fd << "JP C," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP C," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xdb:
-		_disasm_fd << "IN A,(" << getN(memory, cpu->pc + 1) << ")";
+		_disasm_fd << "IN A,(" << getN(memory_fn, cpu->pc + 1) << ")";
 		break;
 	case 0xdc:
-		_disasm_fd << "CALL C," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL C," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xdd:
-		disassemblyopcode_dd(cpu, memory);
+		disassemblyopcode_dd(cpu, memory_fn);
 		break;
 	case 0xde:
-		_disasm_fd << "SBC A," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "SBC A," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xdf:
 		_disasm_fd << "RST 18";
@@ -701,19 +701,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "POP HL";
 		break;
 	case 0xe2:
-		_disasm_fd << "JP PO," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP PO," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xe3:
 		_disasm_fd << "EX (SP),HL";
 		break;
 	case 0xe4:
-		_disasm_fd << "CALL PO," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL PO," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xe5:
 		_disasm_fd << "PUSH HL";
 		break;
 	case 0xe6:
-		_disasm_fd << "AND " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "AND " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xe7:
 		_disasm_fd << "RST 20";
@@ -725,19 +725,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "JP (HL)";
 		break;
 	case 0xea:
-		_disasm_fd << "JP PE," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP PE," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xeb:
 		_disasm_fd << "EX DE,HL";
 		break;
 	case 0xec:
-		_disasm_fd << "CALL PE," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL PE," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xed:
-		disassemblyopcode_ed(cpu, memory);
+		disassemblyopcode_ed(cpu, memory_fn);
 		break;
 	case 0xee:
-		_disasm_fd << "XOR " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "XOR " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xef:
 		_disasm_fd << "RST 28";
@@ -749,19 +749,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "POP AF";
 		break;
 	case 0xf2:
-		_disasm_fd << "JP P," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP P," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xf3:
 		_disasm_fd << "DI";
 		break;
 	case 0xf4:
-		_disasm_fd << "CALL P," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL P," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xf5:
 		_disasm_fd << "PUSH AF";
 		break;
 	case 0xf6:
-		_disasm_fd << "OR " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "OR " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xf7:
 		_disasm_fd << "RST 30";
@@ -773,19 +773,19 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD SP,HL";
 		break;
 	case 0xfa:
-		_disasm_fd << "JP M," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "JP M," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xfb:
 		_disasm_fd << "EI";
 		break;
 	case 0xfc:
-		_disasm_fd << "CALL M," << getNN(memory, cpu->pc + 1);
+		_disasm_fd << "CALL M," << getNN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xfd:
-		disassemblyopcode_fd(cpu, memory);
+		disassemblyopcode_fd(cpu, memory_fn);
 		break;
 	case 0xfe:
-		_disasm_fd << "CP " << getN(memory, cpu->pc + 1);
+		_disasm_fd << "CP " << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0xff:
 		_disasm_fd << "RST 38";
@@ -794,9 +794,9 @@ void Z80debugging::disassemblyopcode(const Z80* cpu, const uint8_t* memory)
 	_disasm_fd << std::endl;
 }
 
-void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
+void Z80debugging::disassemblyopcode_dd(const Z80* cpu, std::function<uint8_t(const uint16_t)> memory_fn)
 {
-	switch (getMemory(memory, cpu->pc+1))
+	switch (getMemory(memory_fn, cpu->pc+1))
 	{
 	case 0x04:
 		_disasm_fd << "INC B";
@@ -805,7 +805,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC B";
 		break;
 	case 0x06:
-		_disasm_fd << "LD B," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD B," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x09:
 		_disasm_fd << "ADD IX,BC";
@@ -817,7 +817,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC C";
 		break;
 	case 0x0e:
-		_disasm_fd << "LD C," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD C," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x14:
 		_disasm_fd << "INC D";
@@ -826,7 +826,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC D";
 		break;
 	case 0x16:
-		_disasm_fd << "LD D," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD D," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x19:
 		_disasm_fd << "ADD IX,DE";
@@ -838,13 +838,13 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC E";
 		break;
 	case 0x1e:
-		_disasm_fd << "LD E," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD E," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x21:
-		_disasm_fd << "LD IX," << getNN(memory, cpu->pc + 2);
+		_disasm_fd << "LD IX," << getNN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x22:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 2) << "),IX";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 2) << "),IX";
 		break;
 	case 0x23:
 		_disasm_fd << "INC IX";
@@ -856,13 +856,13 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC IXh";
 		break;
 	case 0x26:
-		_disasm_fd << "LD IXh," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD IXh," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x29:
 		_disasm_fd << "ADD IX,IX";
 		break;
 	case 0x2a:
-		_disasm_fd << "LD IX,(" << getNN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD IX,(" << getNN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x2b:
 		_disasm_fd << "DEC IX";
@@ -874,16 +874,16 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC IXl";
 		break;
 	case 0x2e:
-		_disasm_fd << "LD IXl," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD IXl," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x34:
-		_disasm_fd << "INC (IX+" << getN(memory, cpu->pc+2) << ")";
+		_disasm_fd << "INC (IX+" << getN(memory_fn, cpu->pc+2) << ")";
 		break;
 	case 0x35:
-		_disasm_fd << "DEC (IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "DEC (IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x36:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << ")," << getN(memory, cpu->pc + 3);
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << ")," << getN(memory_fn, cpu->pc + 3);
 		break;
 	case 0x39:
 		_disasm_fd << "ADD IX,SP";
@@ -895,7 +895,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC A";
 		break;
 	case 0x3e:
-		_disasm_fd << "LD A," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD A," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x40:
 		_disasm_fd << "LD B,B";
@@ -916,7 +916,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD B,IXl";
 		break;
 	case 0x46:
-		_disasm_fd << "LD B,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD B,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x47:
 		_disasm_fd << "LD B,A";
@@ -940,7 +940,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD C,IXl";
 		break;
 	case 0x4e:
-		_disasm_fd << "LD C,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD C,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x4f:
 		_disasm_fd << "LD C,A";
@@ -964,7 +964,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD D,IXl";
 		break;
 	case 0x56:
-		_disasm_fd << "LD D,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD D,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x57:
 		_disasm_fd << "LD D,A";
@@ -988,7 +988,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD E,IXl";
 		break;
 	case 0x5e:
-		_disasm_fd << "LD E,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD E,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x5f:
 		_disasm_fd << "LD E,A";
@@ -1012,7 +1012,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD IXh,IXl";
 		break;
 	case 0x66:
-		_disasm_fd << "LD H,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD H,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x67:
 		_disasm_fd << "LD IXh,A";
@@ -1036,31 +1036,31 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD IXl,IXl";
 		break;
 	case 0x6e:
-		_disasm_fd << "LD L,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD L,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x6f:
 		_disasm_fd << "LD IXl,A";
 		break;
 	case 0x70:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),B";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),B";
 		break;
 	case 0x71:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),C";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),C";
 		break;
 	case 0x72:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),D";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),D";
 		break;
 	case 0x73:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),E";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),E";
 		break;
 	case 0x74:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),H";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),H";
 		break;
 	case 0x75:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),L";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),L";
 		break;
 	case 0x77:
-		_disasm_fd << "LD (IX+" << getN(memory, cpu->pc + 2) << "),A";
+		_disasm_fd << "LD (IX+" << getN(memory_fn, cpu->pc + 2) << "),A";
 		break;
 	case 0x78:
 		_disasm_fd << "LD A,B";
@@ -1081,7 +1081,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD A,IXl";
 		break;
 	case 0x7e:
-		_disasm_fd << "LD A,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD A,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x7f:
 		_disasm_fd << "LD A,A";
@@ -1105,7 +1105,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADD A,IXl";
 		break;
 	case 0x86:
-		_disasm_fd << "ADD A,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "ADD A,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x87:
 		_disasm_fd << "ADD A,A";
@@ -1129,7 +1129,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADC A,IXl";
 		break;
 	case 0x8e:
-		_disasm_fd << "ADC A,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "ADC A,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x8f:
 		_disasm_fd << "ADC A,A";
@@ -1153,7 +1153,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SUB A,IXl";
 		break;
 	case 0x96:
-		_disasm_fd << "SUB A,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "SUB A,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x97:
 		_disasm_fd << "SUB A,A";
@@ -1177,7 +1177,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SBC A,IXl";
 		break;
 	case 0x9e:
-		_disasm_fd << "SBC A,(IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "SBC A,(IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x9f:
 		_disasm_fd << "SBC A,A";
@@ -1201,7 +1201,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "AND IXl";
 		break;
 	case 0xa6:
-		_disasm_fd << "AND (IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "AND (IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xa7:
 		_disasm_fd << "AND A";
@@ -1225,7 +1225,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "XOR IXl";
 		break;
 	case 0xae:
-		_disasm_fd << "XOR (IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "XOR (IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xaf:
 		_disasm_fd << "XOR A";
@@ -1249,7 +1249,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "OR IXl";
 		break;
 	case 0xb6:
-		_disasm_fd << "OR (IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "OR (IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xb7:
 		_disasm_fd << "OR A";
@@ -1273,7 +1273,7 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "CP IXl";
 		break;
 	case 0xbe:
-		_disasm_fd << "CP (IX+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "CP (IX+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xbf:
 		_disasm_fd << "CP A";
@@ -1297,14 +1297,14 @@ void Z80debugging::disassemblyopcode_dd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD SP,IX";
 		break;
 	default:
-		_disasm_fd << "Unknown Instruction" << getN(memory, cpu->pc + 1);
+		_disasm_fd << "Unknown Instruction" << getN(memory_fn, cpu->pc + 1);
 		break;
 	}
 }
 
-void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
+void Z80debugging::disassemblyopcode_ed(const Z80* cpu, std::function<uint8_t(const uint16_t)> memory_fn)
 {
-	switch (getMemory(memory, cpu->pc + 1))
+	switch (getMemory(memory_fn, cpu->pc + 1))
 	{
 	case 0x40:
 		_disasm_fd << "IN B,(C)";
@@ -1316,7 +1316,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SBC HL,BC";
 		break;
 	case 0x43:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 2) << "),BC";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 2) << "),BC";
 		break;
 	case 0x44:
 		_disasm_fd << "NEG";
@@ -1340,7 +1340,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADC HL,BC";
 		break;
 	case 0x4b:
-		_disasm_fd << "LD BC,(" << getNN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD BC,(" << getNN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x4d:
 		_disasm_fd << "RETI";
@@ -1358,7 +1358,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SBC HL,DE";
 		break;
 	case 0x53:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 2) << "),DE";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 2) << "),DE";
 		break;
 	case 0x56:
 		_disasm_fd << "IM 1";
@@ -1376,7 +1376,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADC HL,DE";
 		break;
 	case 0x5b:
-		_disasm_fd << "LD DE,(" << getNN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD DE,(" << getNN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x5e:
 		_disasm_fd << "IM 2";
@@ -1394,7 +1394,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SBC HL,HL";
 		break;
 	case 0x63:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 2) << "),HL";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 2) << "),HL";
 		break;
 	case 0x67:
 		_disasm_fd << "RRD";
@@ -1409,7 +1409,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADC HL,HL";
 		break;
 	case 0x6b:
-		_disasm_fd << "LD HL,(" << getNN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD HL,(" << getNN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x6f:
 		_disasm_fd << "RLD";
@@ -1424,7 +1424,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SBC HL,SP";
 		break;
 	case 0x73:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 2) << "),SP";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 2) << "),SP";
 		break;
 	case 0x78:
 		_disasm_fd << "IN A,(C)";
@@ -1436,7 +1436,7 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADC HL,SP";
 		break;
 	case 0x7b:
-		_disasm_fd << "LD SP,(" << getNN(memory, cpu->pc+2) << ")";
+		_disasm_fd << "LD SP,(" << getNN(memory_fn, cpu->pc+2) << ")";
 		break;
 	case 0xa0:
 		_disasm_fd << "LDI";
@@ -1487,14 +1487,14 @@ void Z80debugging::disassemblyopcode_ed(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "OTDR";
 		break;
 	default:
-		_disasm_fd << "Unknown Instruction" << getN(memory, cpu->pc + 1);
+		_disasm_fd << "Unknown Instruction" << getN(memory_fn, cpu->pc + 1);
 		break;
 	}
 }
 
-void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
+void Z80debugging::disassemblyopcode_fd(const Z80* cpu, std::function<uint8_t(const uint16_t)> memory_fn)
 {
-	switch (getMemory(memory, cpu->pc + 1))
+	switch (getMemory(memory_fn, cpu->pc + 1))
 	{
 	case 0x04:
 		_disasm_fd << "INC B";
@@ -1503,7 +1503,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC B";
 		break;
 	case 0x06:
-		_disasm_fd << "LD B," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD B," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x09:
 		_disasm_fd << "ADD IY,BC";
@@ -1515,7 +1515,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC C";
 		break;
 	case 0x0e:
-		_disasm_fd << "LD C," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD C," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x14:
 		_disasm_fd << "INC D";
@@ -1524,7 +1524,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC D";
 		break;
 	case 0x16:
-		_disasm_fd << "LD D," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD D," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x19:
 		_disasm_fd << "ADD IY,DE";
@@ -1536,13 +1536,13 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC E";
 		break;
 	case 0x1e:
-		_disasm_fd << "LD E," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD E," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x21:
-		_disasm_fd << "LD IY," << getNN(memory, cpu->pc + 2);
+		_disasm_fd << "LD IY," << getNN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x22:
-		_disasm_fd << "LD (" << getNN(memory, cpu->pc + 2) << "),IY";
+		_disasm_fd << "LD (" << getNN(memory_fn, cpu->pc + 2) << "),IY";
 		break;
 	case 0x23:
 		_disasm_fd << "INC IY";
@@ -1554,13 +1554,13 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC IYh";
 		break;
 	case 0x26:
-		_disasm_fd << "LD IYh," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD IYh," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x29:
 		_disasm_fd << "ADD IY,IY";
 		break;
 	case 0x2a:
-		_disasm_fd << "LD IY,(" << getNN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD IY,(" << getNN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x2b:
 		_disasm_fd << "DEC IY";
@@ -1572,16 +1572,16 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC IYl";
 		break;
 	case 0x2e:
-		_disasm_fd << "LD IYl," << getN(memory, cpu->pc + 2);
+		_disasm_fd << "LD IYl," << getN(memory_fn, cpu->pc + 2);
 		break;
 	case 0x34:
-		_disasm_fd << "INC (IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "INC (IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x35:
-		_disasm_fd << "DEC (IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "DEC (IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x36:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << ")," << getN(memory, cpu->pc + 3);
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << ")," << getN(memory_fn, cpu->pc + 3);
 		break;
 	case 0x39:
 		_disasm_fd << "ADD IY,SP";
@@ -1593,7 +1593,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "DEC A";
 		break;
 	case 0x3e:
-		_disasm_fd << "LD A," << getN(memory, cpu->pc + 1);
+		_disasm_fd << "LD A," << getN(memory_fn, cpu->pc + 1);
 		break;
 	case 0x40:
 		_disasm_fd << "LD B,B";
@@ -1614,7 +1614,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD B,IYl";
 		break;
 	case 0x46:
-		_disasm_fd << "LD B,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD B,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x47:
 		_disasm_fd << "LD B,A";
@@ -1638,7 +1638,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD C,IYl";
 		break;
 	case 0x4e:
-		_disasm_fd << "LD C,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD C,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x4f:
 		_disasm_fd << "LD C,A";
@@ -1662,7 +1662,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD D,IYl";
 		break;
 	case 0x56:
-		_disasm_fd << "LD D,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD D,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x57:
 		_disasm_fd << "LD D,A";
@@ -1686,7 +1686,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD E,IYl";
 		break;
 	case 0x5e:
-		_disasm_fd << "LD E,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD E,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x5f:
 		_disasm_fd << "LD E,A";
@@ -1710,7 +1710,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD IYh,IYl";
 		break;
 	case 0x66:
-		_disasm_fd << "LD H,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD H,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x67:
 		_disasm_fd << "LD IYh,A";
@@ -1734,31 +1734,31 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD IYl,IYl";
 		break;
 	case 0x6e:
-		_disasm_fd << "LD L,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD L,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x6f:
 		_disasm_fd << "LD IYl,A";
 		break;
 	case 0x70:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),B";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),B";
 		break;
 	case 0x71:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),C";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),C";
 		break;
 	case 0x72:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),D";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),D";
 		break;
 	case 0x73:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),E";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),E";
 		break;
 	case 0x74:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),H";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),H";
 		break;
 	case 0x75:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),L";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),L";
 		break;
 	case 0x77:
-		_disasm_fd << "LD (IY+" << getN(memory, cpu->pc + 2) << "),A";
+		_disasm_fd << "LD (IY+" << getN(memory_fn, cpu->pc + 2) << "),A";
 		break;
 	case 0x78:
 		_disasm_fd << "LD A,B";
@@ -1779,7 +1779,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD A,IYl";
 		break;
 	case 0x7e:
-		_disasm_fd << "LD A,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "LD A,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x7f:
 		_disasm_fd << "LD A,A";
@@ -1803,7 +1803,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADD A,IYl";
 		break;
 	case 0x86:
-		_disasm_fd << "ADD A,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "ADD A,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x87:
 		_disasm_fd << "ADD A,A";
@@ -1827,7 +1827,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "ADC A,IYl";
 		break;
 	case 0x8e:
-		_disasm_fd << "ADC A,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "ADC A,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x8f:
 		_disasm_fd << "ADC A,A";
@@ -1851,7 +1851,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SUB A,IYl";
 		break;
 	case 0x96:
-		_disasm_fd << "SUB A,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "SUB A,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x97:
 		_disasm_fd << "SUB A,A";
@@ -1875,7 +1875,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "SBC A,IYl";
 		break;
 	case 0x9e:
-		_disasm_fd << "SBC A,(IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "SBC A,(IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0x9f:
 		_disasm_fd << "SBC A,A";
@@ -1899,7 +1899,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "AND IYl";
 		break;
 	case 0xa6:
-		_disasm_fd << "AND (IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "AND (IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xa7:
 		_disasm_fd << "AND A";
@@ -1923,7 +1923,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "XOR IYl";
 		break;
 	case 0xae:
-		_disasm_fd << "XOR (IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "XOR (IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xaf:
 		_disasm_fd << "XOR A";
@@ -1947,7 +1947,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "OR IYl";
 		break;
 	case 0xb6:
-		_disasm_fd << "OR (IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "OR (IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xb7:
 		_disasm_fd << "OR A";
@@ -1971,7 +1971,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "CP IYl";
 		break;
 	case 0xbe:
-		_disasm_fd << "CP (IY+" << getN(memory, cpu->pc + 2) << ")";
+		_disasm_fd << "CP (IY+" << getN(memory_fn, cpu->pc + 2) << ")";
 		break;
 	case 0xbf:
 		_disasm_fd << "CP A";
@@ -1995,7 +1995,7 @@ void Z80debugging::disassemblyopcode_fd(const Z80* cpu, const uint8_t* memory)
 		_disasm_fd << "LD SP,IY";
 		break;
 	default:
-		_disasm_fd << "Unknown Instruction" << getN(memory, cpu->pc + 1);
+		_disasm_fd << "Unknown Instruction" << getN(memory_fn, cpu->pc + 1);
 		break;
 	}
 }

@@ -18,6 +18,7 @@ namespace xprocessors::cpu
 		static const uint16_t PIN_WR = 16;
 		static const uint16_t PIN_HALT = 32;
 		static const uint16_t PIN_RFSH = 64;
+		static const uint16_t PIN_INT = 128;
 
 		enum flags {
 			SF = 0x80,
@@ -41,6 +42,7 @@ namespace xprocessors::cpu
 		uint8_t getDataBus() const { return databus; }
 		void setDataBus(const uint8_t d) { databus = d; }
 		uint16_t getControlPins() const { return pins; }
+		void interrupt() { pins |= PIN_INT; }
 	public:
 		// Registers
 		union { struct { register8_t f; register8_t a; }; register16_t af; };
@@ -49,6 +51,8 @@ namespace xprocessors::cpu
 		union { struct { register8_t l; register8_t h; }; register16_t hl; };
 		union { struct { register8_t ixl; register8_t ixh; }; register16_t ix; };
 		union { struct { register8_t iyl; register8_t iyh; }; register16_t iy; };
+		register8_t i;
+		register8_t r;
 
 		register16_t afprime, bcprime, deprime, hlprime;
 		union { struct { register8_t pcl; register8_t pch; }; register16_t pc; };
@@ -57,11 +61,17 @@ namespace xprocessors::cpu
 
 		bool iff1;
 		bool iff1_requested;
+		bool halted;
+
+		enum class interrupt_mode {
+			mode_0,
+			mode_1,
+			mode_2
+		} im;
 
 		// Process parameter
 		enum { NORMAL = 0, CB, DD, FD, ED, DDCB } hli_idx;
 		uint8_t opcode;
-//		uint16_t buffer16;
 
 		// Pins
 		uint16_t addressbus;
@@ -75,6 +85,7 @@ namespace xprocessors::cpu
 			FETCHWAIT,
 			DECODE,
 			WAIT,
+			HALT,
 			PREFIX_CB,
 			PREFIX_DD,
 			PREFIX_DDCB,
@@ -84,6 +95,8 @@ namespace xprocessors::cpu
 			NOP,
 			DI,
 			EI,
+			IM1,
+			IM2,
 
 			// Copy 16bits register into another register
 			LD_BC_INTO_WZ,
@@ -104,6 +117,7 @@ namespace xprocessors::cpu
 			LD_IYH_INTO_A,
 			LD_IYL_INTO_A,
 			LD_DB_INTO_A,
+			LD_DB_INTO_A_FLAGS,
 
 			// Into F
 			LD_DB_INTO_F,
@@ -224,6 +238,11 @@ namespace xprocessors::cpu
 			LD_DB_INTO_WZL,
 			LD_A_INTO_WZH,
 			LD_DB_INTO_DB_FLAGS,
+			LD_A_INTO_I,
+			LD_I_INTO_A,
+			LD_A_INTO_R,
+			LD_R_INTO_A,
+			LD_I_INTO_WZH,
 
 			READPC,
 			READSP,
@@ -268,6 +287,11 @@ namespace xprocessors::cpu
 			CPAWRH,
 
 			OUTA,
+			OUTC,
+			OUTD,
+			OUTE,
+			OUTH,
+			OUTL,
 			READIO,
 
 			LD_B_INTO_A,

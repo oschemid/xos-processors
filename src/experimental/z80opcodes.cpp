@@ -139,7 +139,7 @@ const std::vector<Z80::opcode_steps> Z80::opcodes_timing[] =
 	{ LD_HL_INTO_WZ, WRITEE, WRITE, NOP, FETCH }, // LD (HL),E
 	{ LD_HL_INTO_WZ, WRITEH, WRITE, NOP, FETCH }, // LD (HL),H
 	{ LD_HL_INTO_WZ, WRITEL, WRITE, NOP, FETCH }, // LD (HL),L
-	{},
+	{ HALT, FETCH }, // HALT
 	{ LD_HL_INTO_WZ, WRITE_A, WRITE, NOP, FETCH }, // LD (HL),A
 	{ LD_B_INTO_A, FETCH }, // LD L,B
 	{ LD_C_INTO_A, FETCH }, // LD L,C
@@ -293,6 +293,10 @@ const std::vector<Z80::opcode_steps> Z80::opcodes_timing[] =
 	{ PREFIX_FD, FETCH_PREFIX }, // FD prefix
 	{ NOP, READPC, WAIT, CP_DB, FETCH }, // CP n
 	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_38, FETCH }, // RST 38
+
+	// 0x100 -
+	{ DI, NOP, NOP, NOP, NOP, NOP, NOP, NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_38, FETCH }, // Interrup Mode 1
+	{ DI, READIO, WAIT, LD_DB_INTO_WZL, NOP, LD_I_INTO_WZH, NOP, NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, NOP, READWR, WAIT, FILLPCL, READWR, WAIT, FILLPCH, FETCH }
 };
 
 const std::vector<Z80::opcode_steps> Z80::opcodes_timing_cb[] =
