@@ -1,12 +1,11 @@
 #pragma once
 #include "xprocessors.h"
-#include "interfaces.h"
 #include "./mc6845.h"
 
 
 namespace xprocessors
 {
-	class am40010 : public interfaces::clockable
+	class am40010
 	{
 	public:
 		struct beam_signal
@@ -19,7 +18,7 @@ namespace xprocessors
 		am40010();
 
 		void init(xprocessors::mc6845*, uint8_t*);
-		void tick() override;
+		void tick();
 		void tickio(const uint8_t);
 
 		void memory_notifier(std::function<void(const bool, const bool)> fn) { _callback_memory = fn; }

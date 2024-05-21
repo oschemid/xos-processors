@@ -1,16 +1,15 @@
 #pragma once
 #include "xprocessors.h"
-#include "interfaces.h"
 
 
 namespace xprocessors
 {
-	class mc6845 : public interfaces::clockable
+	class mc6845
 	{
 	public:
 		mc6845();
 
-		void tick() override;
+		void tick();
 		void tickio(const uint8_t, const uint8_t);
 		bool de() const { return _display_enable; }
 		bool hsync() const { return _hsync; }
