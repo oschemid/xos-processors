@@ -1,5 +1,5 @@
 #include "i8080_tests.h"
-#include "../src/cpu/z80family/i8080.h"
+#include "../src/cpu/z80family/i8080oldsolution.h"
 #include <iostream>
 #include <fstream>
 

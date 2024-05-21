@@ -141,19 +141,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\cpu\cpu.cpp" />
-    <ClCompile Include="src\cpu\z80family\i8080.cpp" />
+    <ClCompile Include="src\cpu\z80family\i8080oldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\lr35902.cpp" />
     <ClCompile Include="src\cpu\z80family\z80oldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80opcodes_cboldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80opcodes_edoldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80opcodes_oldsolution.cpp" />
-    <ClCompile Include="src\experimental\z80.cpp" />
-    <ClCompile Include="src\experimental\z80debugging.cpp" />
-    <ClCompile Include="src\experimental\z80debuggingopcodes.cpp" />
-    <ClCompile Include="src\experimental\z80opcodes.cpp" />
-    <ClCompile Include="src\experimental\z80opcodes_dd.cpp" />
-    <ClCompile Include="src\experimental\z80opcodes_ed.cpp" />
+    <ClCompile Include="src\cpu\z80\z80.cpp" />
+    <ClCompile Include="src\cpu\z80\z80debugging.cpp" />
+    <ClCompile Include="src\cpu\z80\z80debuggingopcodes.cpp" />
+    <ClCompile Include="src\cpu\z80\z80opcodes.cpp" />
+    <ClCompile Include="src\cpu\z80\z80opcodes_dd.cpp" />
+    <ClCompile Include="src\cpu\z80\z80opcodes_ed.cpp" />
+    <ClCompile Include="src\experimental\i8080.cpp" />
+    <ClCompile Include="src\experimental\i8080debugging.cpp" />
+    <ClCompile Include="src\experimental\i8080debuggingopcodes.cpp" />
+    <ClCompile Include="src\experimental\i8080opcodes.cpp" />
     <ClCompile Include="tests\cpu_tests.cpp" />
+    <ClCompile Include="tests\i8080ng_tests.cpp" />
     <ClCompile Include="tests\i8080_tests.cpp" />
     <ClCompile Include="tests\lr35902_tests.cpp" />
     <ClCompile Include="tests\z80ng_tests.cpp" />
@@ -161,22 +166,23 @@
     <ClCompile Include="xos-processors.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\interfaces.h" />
+    <ClInclude Include="include\i8080.h" />
     <ClInclude Include="include\xprocessors.h" />
-    <ClInclude Include="src\cpu\cpu.h" />
+    <ClInclude Include="include\cpu.h" />
     <ClInclude Include="include\mb14241.h" />
     <ClInclude Include="src\cpu\z80family\z80oldsolution.h" />
-    <ClInclude Include="src\experimental\z80.h" />
-    <ClInclude Include="src\experimental\z80debugging.h" />
+    <ClInclude Include="include\z80.h" />
+    <ClInclude Include="src\cpu\z80\z80debugging.h" />
     <ClInclude Include="src\registry.h" />
     <ClInclude Include="src\cpu\z80family\cpus.h" />
-    <ClInclude Include="src\cpu\z80family\i8080.h" />
+    <ClInclude Include="src\cpu\z80family\i8080oldsolution.h" />
     <ClInclude Include="src\cpu\z80family\lr35902.h" />
     <ClInclude Include="src\cpu\z80family\opcodes.h" />
     <ClInclude Include="src\cpu\z80family\opcodes_cb.h" />
     <ClInclude Include="src\cpu\z80family\states.h" />
     <ClInclude Include="tests\cpu_tests.h" />
     <ClInclude Include="tests\data\z80\perfs.h" />
+    <ClInclude Include="tests\i8080ng_tests.h" />
     <ClInclude Include="tests\i8080_tests.h" />
     <ClInclude Include="tests\lr35902_tests.h" />
     <ClInclude Include="tests\z80ng_tests.h" />

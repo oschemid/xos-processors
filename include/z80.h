@@ -1,12 +1,11 @@
 #pragma once
 #include "xprocessors.h"
-#include "interfaces.h"
-#include "../cpu/cpu.h"
+#include "cpu.h"
 
 
 namespace xprocessors::cpu
 {
-	class Z80 : public interfaces::clockable
+	class Z80
 	{
 		friend class Z80debugging;
 
@@ -36,7 +35,7 @@ namespace xprocessors::cpu
 		void init();
 		void reset(const uint16_t = 0);
 
-		void tick() override;
+		void tick();
 
 		uint16_t getAddressBus() const { return addressbus; }
 		uint8_t getDataBus() const { return databus; }

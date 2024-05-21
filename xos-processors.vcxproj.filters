@@ -21,7 +21,7 @@
     <ClCompile Include="src\cpu\cpu.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\cpu\z80family\i8080.cpp">
+    <ClCompile Include="src\cpu\z80family\i8080oldsolution.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="tests\i8080_tests.cpp">
@@ -42,7 +42,7 @@
     <ClCompile Include="tests\z80ng_tests.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\z80debugging.cpp">
+    <ClCompile Include="src\cpu\z80\z80debugging.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\cpu\z80family\z80oldsolution.cpp">
@@ -57,19 +57,34 @@
     <ClCompile Include="src\cpu\z80family\z80opcodes_oldsolution.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\z80.cpp">
+    <ClCompile Include="src\cpu\z80\z80.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\z80opcodes_dd.cpp">
+    <ClCompile Include="src\cpu\z80\z80opcodes_dd.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\z80debuggingopcodes.cpp">
+    <ClCompile Include="src\cpu\z80\z80debuggingopcodes.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\z80opcodes.cpp">
+    <ClCompile Include="src\cpu\z80\z80opcodes.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\z80opcodes_ed.cpp">
+    <ClCompile Include="src\cpu\z80\z80opcodes_ed.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\experimental\i8080.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\experimental\i8080opcodes.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="tests\i8080ng_tests.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\experimental\i8080debugging.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\experimental\i8080debuggingopcodes.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -77,7 +92,7 @@
     <ClInclude Include="src\registry.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="src\cpu\z80family\i8080.h">
+    <ClInclude Include="src\cpu\z80family\i8080oldsolution.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="src\cpu\z80family\states.h">
@@ -110,7 +125,7 @@
     <ClInclude Include="include\xprocessors.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="src\cpu\cpu.h">
+    <ClInclude Include="include\cpu.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="include\mb14241.h">
@@ -119,19 +134,22 @@
     <ClInclude Include="tests\z80ng_tests.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="src\experimental\z80.h">
+    <ClInclude Include="include\z80.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="tests\data\z80\perfs.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="src\experimental\z80debugging.h">
+    <ClInclude Include="src\cpu\z80\z80debugging.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="src\cpu\z80family\z80oldsolution.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="include\interfaces.h">
+    <ClInclude Include="include\i8080.h">
+      <Filter>Fichiers d%27en-tête</Filter>
+    </ClInclude>
+    <ClInclude Include="tests\i8080ng_tests.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>

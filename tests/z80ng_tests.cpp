@@ -1,8 +1,7 @@
 #include "z80ng_tests.h"
-#include "../src/experimental/z80.h"
-#include "../src/experimental/z80debugging.h"
+#include "z80.h"
+#include "../src/cpu/z80/z80debugging.h"
 #include <iostream>
-#include <fstream>
 #include <chrono>
 #include "data/z80/perfs.h"
 
@@ -86,7 +85,7 @@ namespace tests
 			_cpu.reset(0x100);
 
 			Z80debugging debugger;
-			debugger.activateDisassembly();
+//			debugger.activateDisassembly();
 
 			//auto start = high_resolution_clock::now();
 			uint16_t instruction = 0;
