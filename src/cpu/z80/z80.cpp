@@ -584,6 +584,9 @@ void Z80::tick()
 		case OUTA:
 			write(a, true);
 			break;
+		case OUTB:
+			write(b, true);
+			break;
 		case OUTC:
 			write(c, true);
 			break;

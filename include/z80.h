@@ -286,6 +286,7 @@ namespace xprocessors::cpu
 			CPAWRH,
 
 			OUTA,
+			OUTB,
 			OUTC,
 			OUTD,
 			OUTE,
