@@ -31,6 +31,7 @@ void i8080::reset(const uint16_t start)
 	_halted = false;
 	_intreq = false;
 	_intgo = false;
+	_haltint = false;
 }
 
 void i8080::tick()
@@ -45,6 +46,7 @@ void i8080::tick()
 		_intreq = false;
 		if (_halted)
 		{
+			_haltint = true;
 			_halted = false;
 		}
 	}
@@ -794,7 +796,20 @@ void i8080::tick()
 void i8080::fetch()
 {
 	_addressbus = pc;
-	_databus = STATUS_WO | STATUS_M1 | STATUS_MEMR;
+	if (_intgo)
+	{
+		_databus = STATUS_WO | STATUS_M1 | STATUS_INTA;
+		if (_haltint)
+		{
+			_databus |= STATUS_HLTA;
+			_haltint = false;
+		}
+		_pins &= ~PIN_INTE;
+	}
+	else
+	{
+		_databus = STATUS_WO | STATUS_M1 | STATUS_MEMR;
+	}
 	_pins |= PIN_SYNC;
 	_current_steps_idx = -1;
 	_current_step = FETCHREAD;
@@ -810,7 +825,14 @@ void i8080::fetchread()
 	else
 	{
 		_pins &= ~PIN_WAIT;
-		pc++;
+		if (_intgo)
+		{
+			_intgo = false;
+		}
+		else
+		{
+			pc++;
+		}
 		_current_step = DECODE;
 	}
 }

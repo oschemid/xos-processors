@@ -45,6 +45,7 @@ namespace xprocessors::cpu
 		void setDataBus(const uint8_t d) { _databus = d; }
 		void setReady() { _pins |= PIN_READY; }
 		void resetReady() { _pins &= ~PIN_READY; }
+		void sendInterrupt() { _pins |= PIN_INT; }
 
 	protected:
 		uint16_t _addressbus;
@@ -299,6 +300,7 @@ namespace xprocessors::cpu
 		bool _halted;
 		bool _intreq;
 		bool _intgo;
+		bool _haltint;
 
 		void setINTE(const bool flag) { if (flag) _pins |= PIN_INTE; else _pins &= ~PIN_INTE; }
 
