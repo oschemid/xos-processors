@@ -1,17 +1,26 @@
-#include "z80.h"
+#include "lr35902.h"
 
 
 using namespace xprocessors::cpu;
 
-void Z80::init()
+void LR35902::init()
 {
 	reset();
 }
 
-void Z80::reset(const uint16_t start)
+void LR35902::reset(const uint16_t start)
 {
 	pc = start;
-	af = bc = de = hl = ix = iy = wz = sp = 0;
+	a = 1;
+	f = 0xb0;
+	b = 0;
+	c = 0x13;
+	d = 0;
+	e = 0xd8;
+	h = 1;
+	l = 0x4d;
+	wz = 0; 
+	sp = 0xfffe;
 	hli_idx = NORMAL;
 	_opcode = 0;
 	addressbus = 0;
@@ -20,11 +29,10 @@ void Z80::reset(const uint16_t start)
 	current_step = FETCH;
 	current_steps_idx = -1;
 	iff1 = iff1_requested = false;
-	r = 0;
 	halted = false;
 }
 
-void Z80::tick()
+void LR35902::tick()
 {
 	pins &= PIN_INT;
 	if (!halted) {
@@ -49,18 +57,6 @@ void Z80::tick()
 			decode(); break;
 		case PREFIX_CB:
 			hli_idx = CB;
-			break;
-		case PREFIX_DD:
-			hli_idx = DD;
-			break;
-		case PREFIX_ED:
-			hli_idx = ED;
-			break;
-		case PREFIX_FD:
-			hli_idx = FD;
-			break;
-		case PREFIX_DDCB:
-			hli_idx = DDCB;
 			break;
 		case WAIT:
 			wait(); break;
@@ -93,12 +89,6 @@ void Z80::tick()
 		case LD_HL_INTO_WZ:
 			wz = hl;
 			break;
-		case LD_IX_INTO_WZ:
-			wz = ix;
-			break;
-		case LD_IY_INTO_WZ:
-			wz = iy;
-			break;
 		case LD_SP_INTO_WZ:
 			wz = sp;
 			break;
@@ -107,12 +97,6 @@ void Z80::tick()
 			break;
 		case LD_WZ_INTO_HL:
 			hl = wz;
-			break;
-		case LD_WZ_INTO_IX:
-			ix = wz;
-			break;
-		case LD_WZ_INTO_IY:
-			iy = wz;
 			break;
 
 		// Load databus
@@ -123,10 +107,9 @@ void Z80::tick()
 			a = databus;
 			f &= ~(flags::NF | flags::HF);
 			setSZXY(a);
-			setP(a);
 			break;
 		case LD_DB_INTO_F:
-			f = databus;
+			f = databus & 0xf0;
 			break;
 		case LD_DB_INTO_B:
 			b = databus;
@@ -135,7 +118,6 @@ void Z80::tick()
 			b = databus;
 			f &= ~(flags::NF | flags::HF);
 			setSZXY(b);
-			setP(b);
 			break;
 		case LD_DB_INTO_C:
 			c = databus;
@@ -147,7 +129,6 @@ void Z80::tick()
 			d = databus;
 			f &= ~(flags::NF | flags::HF);
 			setSZXY(d);
-			setP(d);
 			break;
 		case LD_DB_INTO_E:
 			e = databus;
@@ -159,22 +140,9 @@ void Z80::tick()
 			h = databus;
 			f &= ~(flags::NF | flags::HF);
 			setSZXY(h);
-			setP(h);
 			break;
 		case LD_DB_INTO_L:
 			l = databus;
-			break;
-		case LD_DB_INTO_IXL:
-			ixl = databus;
-			break;
-		case LD_DB_INTO_IXH:
-			ixh = databus;
-			break;
-		case LD_DB_INTO_IYL:
-			iyl = databus;
-			break;
-		case LD_DB_INTO_IYH:
-			iyh = databus;
 			break;
 		case LD_DB_INTO_SPL:
 			spl = databus;
@@ -185,7 +153,6 @@ void Z80::tick()
 		case LD_DB_INTO_DB_FLAGS:
 			f &= ~(flags::NF | flags::HF);
 			setSZXY(databus);
-			setP(databus);
 			break;
 
 		// Load register
@@ -207,18 +174,6 @@ void Z80::tick()
 		case LD_L_INTO_B:
 			b = l;
 			break;
-		case LD_IXH_INTO_B:
-			b = ixh;
-			break;
-		case LD_IXL_INTO_B:
-			b = ixl;
-			break;
-		case LD_IYH_INTO_B:
-			b = iyh;
-			break;
-		case LD_IYL_INTO_B:
-			b = iyl;
-			break;
 		case LD_A_INTO_C:
 			c = a;
 			break;
@@ -236,18 +191,6 @@ void Z80::tick()
 			break;
 		case LD_L_INTO_C:
 			c = l;
-			break;
-		case LD_IXH_INTO_C:
-			c = ixh;
-			break;
-		case LD_IXL_INTO_C:
-			c = ixl;
-			break;
-		case LD_IYH_INTO_C:
-			c = iyh;
-			break;
-		case LD_IYL_INTO_C:
-			c = iyl;
 			break;
 		case LD_A_INTO_D:
 			d = a;
@@ -267,18 +210,6 @@ void Z80::tick()
 		case LD_L_INTO_D:
 			d = l;
 			break;
-		case LD_IXH_INTO_D:
-			d = ixh;
-			break;
-		case LD_IXL_INTO_D:
-			d = ixl;
-			break;
-		case LD_IYH_INTO_D:
-			d = iyh;
-			break;
-		case LD_IYL_INTO_D:
-			d = iyl;
-			break;
 		case LD_A_INTO_E:
 			e = a;
 			break;
@@ -296,18 +227,6 @@ void Z80::tick()
 			break;
 		case LD_L_INTO_E:
 			e = l;
-			break;
-		case LD_IXH_INTO_E:
-			e = ixh;
-			break;
-		case LD_IXL_INTO_E:
-			e = ixl;
-			break;
-		case LD_IYH_INTO_E:
-			e = iyh;
-			break;
-		case LD_IYL_INTO_E:
-			e = iyl;
 			break;
 		case LD_A_INTO_H:
 			h = a;
@@ -345,78 +264,6 @@ void Z80::tick()
 		case LD_H_INTO_L:
 			l = h;
 			break;
-		case LD_A_INTO_IXH:
-			ixh = a;
-			break;
-		case LD_B_INTO_IXH:
-			ixh = b;
-			break;
-		case LD_C_INTO_IXH:
-			ixh = c;
-			break;
-		case LD_D_INTO_IXH:
-			ixh = d;
-			break;
-		case LD_E_INTO_IXH:
-			ixh = e;
-			break;
-		case LD_IXL_INTO_IXH:
-			ixh = ixl;
-			break;
-		case LD_A_INTO_IXL:
-			ixl = a;
-			break;
-		case LD_B_INTO_IXL:
-			ixl = b;
-			break;
-		case LD_C_INTO_IXL:
-			ixl = c;
-			break;
-		case LD_D_INTO_IXL:
-			ixl = d;
-			break;
-		case LD_E_INTO_IXL:
-			ixl = e;
-			break;
-		case LD_IXH_INTO_IXL:
-			ixl = ixh;
-			break;
-		case LD_A_INTO_IYH:
-			iyh = a;
-			break;
-		case LD_B_INTO_IYH:
-			iyh = b;
-			break;
-		case LD_C_INTO_IYH:
-			iyh = c;
-			break;
-		case LD_D_INTO_IYH:
-			iyh = d;
-			break;
-		case LD_E_INTO_IYH:
-			iyh = e;
-			break;
-		case LD_IYL_INTO_IYH:
-			iyh = iyl;
-			break;
-		case LD_A_INTO_IYL:
-			iyl = a;
-			break;
-		case LD_B_INTO_IYL:
-			iyl = b;
-			break;
-		case LD_C_INTO_IYL:
-			iyl = c;
-			break;
-		case LD_D_INTO_IYL:
-			iyl = d;
-			break;
-		case LD_E_INTO_IYL:
-			iyl = e;
-			break;
-		case LD_IYH_INTO_IYL:
-			iyl = iyh;
-			break;
 
 		case LD_B_INTO_A:
 			a = b;
@@ -436,40 +283,17 @@ void Z80::tick()
 		case LD_L_INTO_A:
 			a = l;
 			break;
-		case LD_IXH_INTO_A:
-			a = ixh;
-			break;
-		case LD_IXL_INTO_A:
-			a = ixl;
-			break;
-		case LD_IYH_INTO_A:
-			a = iyh;
-			break;
-		case LD_IYL_INTO_A:
-			a = iyl;
-			break;
 		case LD_DB_INTO_WZL:
 			z = databus;
 			break;
 		case LD_DB_INTO_WZH:
 			w = databus;
 			break;
+		case LD_FF_INTO_WZH:
+			w = 0xff;
+			break;
 		case LD_A_INTO_WZH:
 			w = a;
-			break;
-		case LD_A_INTO_I:
-			i = a;
-			break;
-		case LD_I_INTO_A:
-			a = i;
-			break;
-		case LD_I_INTO_WZH:
-			w = i;
-		case LD_A_INTO_R:
-			r = a;
-			break;
-		case LD_R_INTO_A:
-			a = r;
 			break;
 
 		case READPC:
@@ -508,18 +332,6 @@ void Z80::tick()
 			break;
 		case WRITEL:
 			write(l);
-			break;
-		case WRITEIXH:
-			write(ixh);
-			break;
-		case WRITEIXL:
-			write(ixl);
-			break;
-		case WRITEIYH:
-			write(iyh);
-			break;
-		case WRITEIYL:
-			write(iyl);
 			break;
 		case WRITEPCL:
 			write(pcl);
@@ -562,18 +374,6 @@ void Z80::tick()
 			break;
 		case PUSH_L:
 			push(l);
-			break;
-		case PUSH_IXH:
-			push(ixh);
-			break;
-		case PUSH_IXL:
-			push(ixl);
-			break;
-		case PUSH_IYH:
-			push(iyh);
-			break;
-		case PUSH_IYL:
-			push(iyl);
 			break;
 		case PUSH_PCH:
 			push(pch);
@@ -641,45 +441,23 @@ void Z80::tick()
 		case JP:
 			jp(); break;
 		case JPZ:
-			if (f & Z80::flags::ZF)
+			if (f & LR35902::flags::ZF)
 				jp();
 			break;
 		case JPNZ:
-			if (!(f & Z80::flags::ZF))
+			if (!(f & LR35902::flags::ZF))
 				jp();
 			break;
 		case JPC:
-			if (f & Z80::flags::CF)
+			if (f & LR35902::flags::CF)
 				jp();
 			break;
 		case JPNC:
-			if (!(f & Z80::flags::CF))
-				jp();
-			break;
-		case JPPE:
-			if (f & Z80::flags::PF)
-				jp();
-			break;
-		case JPPO:
-			if (!(f & Z80::flags::PF))
-				jp();
-			break;
-		case JPM:
-			if (f & Z80::flags::SF)
-				jp();
-			break;
-		case JPP:
-			if (!(f & Z80::flags::SF))
+			if (!(f & LR35902::flags::CF))
 				jp();
 			break;
 		case JPHL:
 			pc = hl;
-			break;
-		case JPIX:
-			pc = ix;
-			break;
-		case JPIY:
-			pc = iy;
 			break;
 		case JR:
 			pc += static_cast<int8_t>(databus);
@@ -705,18 +483,6 @@ void Z80::tick()
 			break;
 		case DECPC:
 			pc--;
-			break;
-		case INC_IX:
-			ix++;
-			break;
-		case DEC_IX:
-			ix--;
-			break;
-		case INC_IY:
-			iy++;
-			break;
-		case DEC_IY:
-			iy--;
 			break;
 		case INCSP:
 			sp++;
@@ -763,18 +529,6 @@ void Z80::tick()
 		case INC_L:
 			l = inc(l);
 			break;
-		case INC_IXH:
-			ixh = inc(ixh);
-			break;
-		case INC_IXL:
-			ixl = inc(ixl);
-			break;
-		case INC_IYH:
-			ixh = inc(iyh);
-			break;
-		case INC_IYL:
-			iyl = inc(iyl);
-			break;
 		case DEC_A:
 			a = dec(a);
 			break;
@@ -796,26 +550,8 @@ void Z80::tick()
 		case DEC_L:
 			l = dec(l);
 			break;
-		case DEC_IXH:
-			ixh = dec(ixh);
-			break;
-		case DEC_IXL:
-			ixl = dec(ixl);
-			break;
-		case DEC_IYH:
-			iyh = dec(iyh);
-			break;
-		case DEC_IYL:
-			iyl = dec(iyl);
-			break;
 		case ADD_WZ_TO_HL:
 			add16(hl, wz);
-			break;
-		case ADD_WZ_TO_IX:
-			add16(ix, wz);
-			break;
-		case ADD_WZ_TO_IY:
-			add16(iy, wz);
 			break;
 		case ADC_WZ_TO_HL:
 			adc16(wz);
@@ -848,18 +584,6 @@ void Z80::tick()
 		case ADD_L_TO_A:
 			add(l);
 			break;
-		case ADD_IXH_TO_A:
-			add(ixh);
-			break;
-		case ADD_IXL_TO_A:
-			add(ixl);
-			break;
-		case ADD_IYH_TO_A:
-			add(iyh);
-			break;
-		case ADD_IYL_TO_A:
-			add(iyl);
-			break;
 		case ADD_A_TO_A:
 			add(a);
 			break;
@@ -884,18 +608,6 @@ void Z80::tick()
 			break;
 		case ADC_L_TO_A:
 			adc(l);
-			break;
-		case ADC_IXH_TO_A:
-			adc(ixh);
-			break;
-		case ADC_IXL_TO_A:
-			adc(ixl);
-			break;
-		case ADC_IYH_TO_A:
-			adc(iyh);
-			break;
-		case ADC_IYL_TO_A:
-			adc(iyl);
 			break;
 		case ADC_A_TO_A:
 			adc(a);
@@ -922,18 +634,6 @@ void Z80::tick()
 		case SUB_L_TO_A:
 			sub(l);
 			break;
-		case SUB_IXH_TO_A:
-			sub(ixh);
-			break;
-		case SUB_IXL_TO_A:
-			sub(ixl);
-			break;
-		case SUB_IYH_TO_A:
-			sub(iyh);
-			break;
-		case SUB_IYL_TO_A:
-			sub(iyl);
-			break;
 		case SUB_A_TO_A:
 			sub(a);
 			break;
@@ -958,18 +658,6 @@ void Z80::tick()
 			break;
 		case SBC_L_TO_A:
 			sbc(l);
-			break;
-		case SBC_IXH_TO_A:
-			sbc(ixh);
-			break;
-		case SBC_IXL_TO_A:
-			sbc(ixl);
-			break;
-		case SBC_IYH_TO_A:
-			sbc(iyh);
-			break;
-		case SBC_IYL_TO_A:
-			sbc(iyl);
 			break;
 		case SBC_A_TO_A:
 			sbc(a);
@@ -996,18 +684,6 @@ void Z80::tick()
 		case AND_L:
 			ana(l);
 			break;
-		case AND_IXH:
-			ana(ixh);
-			break;
-		case AND_IXL:
-			ana(ixl);
-			break;
-		case AND_IYH:
-			ana(iyh);
-			break;
-		case AND_IYL:
-			ana(iyl);
-			break;
 		case AND_A:
 			ana(a);
 			break;
@@ -1032,18 +708,6 @@ void Z80::tick()
 		case OR_L:
 			ora(l);
 			break;
-		case OR_IXH:
-			ora(ixh);
-			break;
-		case OR_IXL:
-			ora(ixl);
-			break;
-		case OR_IYH:
-			ora(iyh);
-			break;
-		case OR_IYL:
-			ora(iyl);
-			break;
 		case OR_A:
 			ora(a);
 			break;
@@ -1067,18 +731,6 @@ void Z80::tick()
 			break;
 		case XOR_L:
 			xra(l);
-			break;
-		case XOR_IXH:
-			xra(ixh);
-			break;
-		case XOR_IXL:
-			xra(ixl);
-			break;
-		case XOR_IYH:
-			xra(iyh);
-			break;
-		case XOR_IYL:
-			xra(iyl);
 			break;
 		case XOR_A:
 			xra(a);
@@ -1106,18 +758,6 @@ void Z80::tick()
 			break;
 		case CP_L:
 			cp(l);
-			break;
-		case CP_IXH:
-			cp(ixh);
-			break;
-		case CP_IXL:
-			cp(ixl);
-			break;
-		case CP_IYH:
-			cp(iyh);
-			break;
-		case CP_IYL:
-			cp(iyl);
 			break;
 		case CP_A:
 			cp(a);
@@ -1242,29 +882,29 @@ void Z80::tick()
 		case SLA_DB:
 			databus = sla(databus);
 			break;
-		case SLL_A:
-			a = sll(a);
+		case SWAP_A:
+			a = swap(a);
 			break;
-		case SLL_B:
-			b = sll(b);
+		case SWAP_B:
+			b = swap(b);
 			break;
-		case SLL_C:
-			c = sll(c);
+		case SWAP_C:
+			c = swap(c);
 			break;
-		case SLL_D:
-			d = sll(d);
+		case SWAP_D:
+			d = swap(d);
 			break;
-		case SLL_E:
-			e = sll(e);
+		case SWAP_E:
+			e = swap(e);
 			break;
-		case SLL_H:
-			h = sll(h);
+		case SWAP_H:
+			h = swap(h);
 			break;
-		case SLL_L:
-			l = sll(l);
+		case SWAP_L:
+			l = swap(l);
 			break;
-		case SLL_DB:
-			databus = sll(databus);
+		case SWAP_DB:
+			databus = swap(databus);
 			break;
 		case SRL_A:
 			a = srl(a);
@@ -1348,14 +988,8 @@ void Z80::tick()
 		case RLD:
 			rld();
 			break;
-		case EXAF:
-			exaf();
-			break;
 		case EX_DE_HL:
 			exdehl();
-			break;
-		case EXX:
-			exx();
 			break;
 		case LD_ITER:
 			ld_iter();
@@ -1381,22 +1015,6 @@ void Z80::tick()
 			break;
 		case STOPNC:
 			if (!(f & flags::CF))
-				next_fetch();
-			break;
-		case STOPPE:
-			if (f & flags::PF)
-				next_fetch();
-			break;
-		case STOPPO:
-			if (!(f & flags::PF))
-				next_fetch();
-			break;
-		case STOPM:
-			if (f & flags::SF)
-				next_fetch();
-			break;
-		case STOPP:
-			if (!(f & flags::SF))
 				next_fetch();
 			break;
 		case BIT0_DB:
@@ -2006,23 +1624,19 @@ void Z80::tick()
 	}
 }
 
-void Z80::fetch()
+void LR35902::fetch()
 {
 	// Request opcode
 	addressbus = pc++;
 	pins = PIN_MREQ | PIN_RD | PIN_M1 | (pins&PIN_INT);
-	if ((r & 0x7f) == 0x7f)
-		r = r & 0x80;
-	else
-		r++;
 	current_steps_idx = -1;
 	current_step = FETCHWAIT;
 }
-void Z80::fetchwait()
+void LR35902::fetchwait()
 {
 	current_step = DECODE;
 }
-void Z80::decode()
+void LR35902::decode()
 {	
 	_opcode = databus;
 	pins = PIN_MREQ | PIN_RFSH | (pins&PIN_INT);
@@ -2033,188 +1647,150 @@ void Z80::decode()
 	case CB:
 		current_steps = &(opcodes_timing_cb[_opcode]);
 		break;
-	case DD:
-		current_steps = &(opcodes_timing_dd[_opcode]);
-		break;
-	case ED:
-		current_steps = &(opcodes_timing_ed[_opcode]);
-		break;
-	case FD:
-		current_steps = &(opcodes_timing_fd[_opcode]);
-		break;
-	case DDCB:
-		current_steps = &(opcodes_timing_ddcb[_opcode]);
-		break;
 	}
 	current_steps_idx = 0;
 }
-void Z80::wait()
+void LR35902::wait()
 {
 }
-void Z80::readpc()
+void LR35902::readpc()
 {
 	addressbus = pc++;
 	pins = PIN_MREQ | PIN_RD | (pins&PIN_INT);
 }
-void Z80::readsp()
+void LR35902::readsp()
 {
 	addressbus = sp++;
 	pins = PIN_MREQ | PIN_RD | (pins&PIN_INT);
 }
-void Z80::readwr()
+void LR35902::readwr()
 {
 	addressbus = wz++;
 	pins = PIN_MREQ | PIN_RD | (pins&PIN_INT);
 }
-void Z80::write(const uint8_t r, const bool io)
+void LR35902::write(const uint8_t r, const bool io)
 {
 	addressbus = wz;
 	databus = r;
 	pins = (pins&PIN_INT) | ((io)? PIN_IORQ : PIN_MREQ);
 }
-void Z80::push(const uint8_t r)
+void LR35902::push(const uint8_t r)
 {
 	addressbus = --sp;
 	databus = r;
 	pins = PIN_MREQ | (pins&PIN_INT);
 }
-void Z80::write()
+void LR35902::write()
 {
 	pins = PIN_MREQ | PIN_WR | (pins&PIN_INT);
 }
-void Z80::iowrite()
+void LR35902::iowrite()
 {
 	pins = PIN_IORQ | PIN_WR | (pins&PIN_INT);
 }
-void Z80::read(const bool io)
+void LR35902::read(const bool io)
 {
 	addressbus = wz;
 	pins = (pins&PIN_INT) | (((io)? PIN_IORQ : PIN_MREQ)) | PIN_RD;
 }
-void Z80::next_fetch()
+void LR35902::next_fetch()
 {
 	current_step = FETCH;
 	current_steps_idx = -1;
 }
-void Z80::jp()
+void LR35902::jp()
 {
 	pc = z | (databus<<8);
 }
-void Z80::setSZXY(const uint8_t value) {
-	f &= ~(flags::ZF | flags::XF | flags::SF | flags::YF);
+void LR35902::setSZXY(const uint8_t value) {
+	f &= ~flags::ZF;
 	if (value == 0)
 		f |= flags::ZF;
-	else
-		f |= value & (flags::XF | flags::SF | flags::YF);
 }
-void Z80::setSZXY(const uint16_t value) {
-	f &= ~(flags::ZF | flags::XF | flags::SF | flags::YF);
+void LR35902::setSZXY(const uint16_t value) {
+	f &= ~flags::ZF;
 	if (value == 0)
 		f |= flags::ZF;
-	else
-		f |= (value >> 8) & (flags::XF | flags::SF | flags::YF);
 }
 
-void Z80::setP(const uint8_t value) {
-	uint8_t t = value;
-	t ^= t >> 4;
-	t ^= t >> 2;
-	if ((t ^= t >> 1) & 1)
-		f &= ~(flags::PF);
-	else
-		f |= flags::PF;
-}
-
-uint8_t Z80::inc(const uint8_t value) {
+uint8_t LR35902::inc(const uint8_t value) {
 	uint8_t result = value + 1;
-	f &= ~(flags::NF | flags::HF | flags::VF);
+	f &= ~(flags::NF | flags::HF);
 	setSZXY(result);
-	if (result == 0x80)
-		f |= flags::VF;
 	if ((result & 0x0f) == 0x00)
 		f |= flags::HF;
 	return result;
 }
 
-uint8_t Z80::dec(const uint8_t value) {
+uint8_t LR35902::dec(const uint8_t value) {
 	uint8_t result = value - 1;
-	f &= ~(flags::HF | flags::VF);
+	f &= ~flags::HF;
 	f |= flags::NF;
 	setSZXY(result);
-	if (result == 0x7f)
-		f |= flags::VF;
 	if ((result & 0x0f) == 0x0f)
 		f |= flags::HF;
 	return result;
 }
 
-void Z80::rla(const bool c) {
+void LR35902::rla(const bool c) {
 	const bool carry = (c) ? a & 0x80 : f & flags::CF;
 
-	f &= ~(flags::NF | flags::HF | flags::CF);
+	f = 0;
 	if (a & 0x80)
 		f |= flags::CF;
 	a <<= 1;
 	a |= (carry) ? 1 : 0;
 }
-void Z80::rra(const bool c) {
+void LR35902::rra(const bool c) {
 	const bool carry = (c) ? a & 0x01 : f & flags::CF;
 
-	f &= ~(flags::NF | flags::HF | flags::CF);
+	f = 0;
 	if (a & 0x01)
 		f |= flags::CF;
 	a >>= 1;
 	a |= (carry) ? 0x80 : 0;
 }
-void Z80::daa() {
-	uint8_t carry = 0;
-	uint8_t diff = 0;
-	if ((f & flags::CF) || (a > 0x99)) {
-		diff += 0x60;
-		carry = flags::CF;
+void LR35902::daa() {
+	if (f & flags::NF)
+	{
+		if (f & flags::CF)
+			a -= 0x60;
+		if (f & flags::HF)
+			a -= 0x06;
 	}
-	if ((f & flags::HF) || ((a & 0xf) > 9))
-		diff += 6;
-
-	if (f & flags::NF) {
-		if ((a & 0xf) > 5)
-			f &= ~flags::HF;
-		a -= diff;
+	else
+	{
+		if ((f & flags::CF) || (a > 0x99))
+		{
+			a += 0x60;
+			f |= flags::CF;
+		}
+		if ((f & flags::HF) || ((a & 0xf) > 9))
+			a += 6;
 	}
-	else {
-		if ((a & 0xf) > 9)
-			f |= flags::HF;
-		else
-			f &= ~flags::HF;
-		a += diff;
-	}
+	f &= ~flags::HF;
 	setSZXY(a);
-	setP(a);
-	f |= carry;
 }
 
-void Z80::cpl() {
+void LR35902::cpl() {
 	a = ~a;
 	f |= (flags::HF | flags::NF);
 }
-void Z80::scf() {
+void LR35902::scf() {
 	f |= flags::CF;
-	f &= ~(flags::NF | flags::XF | flags::YF | flags::HF);
-	f |= a & (flags::XF | flags::YF);
+	f &= ~(flags::NF | flags::HF);
 }
-void Z80::ccf() {
+void LR35902::ccf() {
+	f &= ~(flags::NF | flags::HF);
 	if (f & flags::CF) {
-		f &= ~(flags::NF | flags::CF | flags::XF | flags::YF);
-		f |= flags::HF;
+		f &= ~flags::CF;
 	}
 	else {
-		f &= ~(flags::NF | flags::HF | flags::XF | flags::YF);
 		f |= flags::CF;
 	}
-	f |= a & (flags::XF | flags::YF);
 }
 
-void Z80::add(const uint8_t value)
+void LR35902::add(const uint8_t value)
 {
 	const uint16_t sum = a + value;
 	const uint16_t carryIns = sum ^ a ^ value;
@@ -2222,15 +1798,13 @@ void Z80::add(const uint8_t value)
 	a = sum & 0xff;
 
 	setSZXY(a);
-	f &= ~(flags::NF | flags::HF | flags::PF | flags::CF);
+	f &= ~(flags::NF | flags::HF | flags::CF);
 	if (sum > 0xff)
 		f |= flags::CF;
 	if (carryIns & 0x10)
 		f |= flags::HF;
-	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
-		f |= flags::PF;
 }
-void Z80::adc(const uint8_t value)
+void LR35902::adc(const uint8_t value)
 {
 	const uint8_t flag = (f & flags::CF) ? 1 : 0;
 	const uint16_t sum = a + value + flag;
@@ -2239,15 +1813,13 @@ void Z80::adc(const uint8_t value)
 	a = sum & 0xff;
 
 	setSZXY(a);
-	f &= ~(flags::NF | flags::HF | flags::PF | flags::CF);
+	f &= ~(flags::NF | flags::HF | flags::CF);
 	if (sum > 0xff)
 		f |= flags::CF;
 	if (carryIns & 0x10)
 		f |= flags::HF;
-	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
-		f |= flags::PF;
 }
-void Z80::sub(const uint8_t value)
+void LR35902::sub(const uint8_t value)
 {
 	const uint16_t sum = a - value;
 	const uint16_t carryIns = (sum ^ a ^ value);
@@ -2255,16 +1827,14 @@ void Z80::sub(const uint8_t value)
 	a = sum & 0xff;
 
 	setSZXY(a);
-	f &= ~(flags::HF | flags::PF | flags::CF);
+	f &= ~(flags::HF | flags::CF);
 	f |= flags::NF;
 	if (carryIns & 0x10)
 		f |= flags::HF;
-	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
-		f |= flags::PF;
 	if ((carryIns >> 8) & 0x1)
 		f |= flags::CF;
 }
-void Z80::sbc(const uint8_t value)
+void LR35902::sbc(const uint8_t value)
 {
 	const uint8_t flag = (f & flags::CF) ? 1 : 0;
 	const uint16_t sum = a - value - flag;
@@ -2273,40 +1843,35 @@ void Z80::sbc(const uint8_t value)
 	a = sum & 0xff;
 
 	setSZXY(a);
-	f &= ~(flags::HF | flags::PF | flags::CF);
+	f &= ~(flags::HF | flags::CF);
 	f |= flags::NF;
 	if (carryIns & 0x10)
 		f |= flags::HF;
-	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
-		f |= flags::PF;
 	if ((carryIns >> 8) & 0x1)
 		f |= flags::CF;
 }
-void Z80::ana(const uint8_t value) {
+void LR35902::ana(const uint8_t value) {
 	a &= value;
 
 	f = 0;
 	setSZXY(a);
-	setP(a);
 	f |= flags::HF;
 }
-void Z80::ora(const uint8_t value) {
+void LR35902::ora(const uint8_t value) {
 	a |= value;
 
 	f = 0;
 	setSZXY(a);
-	setP(a);
 }
-void Z80::xra(const uint8_t value)
+void LR35902::xra(const uint8_t value)
 {
 	a ^= value;
 
 	f = 0;
 	setSZXY(a);
-	setP(a);
 }
 
-void Z80::cp(const uint8_t value, const bool nocarry)
+void LR35902::cp(const uint8_t value, const bool nocarry)
 {
 	const uint16_t sum = a - value;
 	const uint16_t carryIns = (sum ^ a ^ value);
@@ -2314,191 +1879,146 @@ void Z80::cp(const uint8_t value, const bool nocarry)
 	f = (nocarry)? (f&flags::CF)|flags::NF : flags::NF;
 	if (sum == 0)
 		f |= flags::ZF;
-	else
-		f |= sum & flags::SF;
-	f |= value & (flags::XF | flags::YF);
 
 	if (carryIns & 0x10)
 		f |= flags::HF;
-	if (((carryIns >> 7) & 0x1) ^ ((carryIns >> 8) & 0x1))
-		f |= flags::PF;
 	if ((!nocarry) && ((carryIns >> 8) & 0x1))
 		f |= flags::CF;
 }
 
-void Z80::exaf()
-{
-	const register16_t tmp = af;
-	af = afprime;
-	afprime = tmp;
-}
-void Z80::exx()
-{
-	register16_t tmp = bc;
-	bc = bcprime;
-	bcprime = tmp;
-	tmp = de;
-	de = deprime;
-	deprime = tmp;
-	tmp = hl;
-	hl = hlprime;
-	hlprime = tmp;
-}
-void Z80::exdehl()
+void LR35902::exdehl()
 {
 	const register16_t tmp = de;
 	de = hl;
 	hl = tmp;
 }
-void Z80::ld_iter() {
+void LR35902::ld_iter() {
 	--bc;
-	f &= ~(Z80::flags::HF | Z80::flags::NF | Z80::flags::PF);
-	if (bc != 0)
-		f |= Z80::flags::PF;
+	f &= ~(LR35902::flags::HF | LR35902::flags::NF);
 }
-void Z80::cp_iter() {
+void LR35902::cp_iter() {
 	--bc;
-	f &= ~(Z80::flags::PF);
-	f |= Z80::flags::NF;
-	if (bc != 0)
-		f |= Z80::flags::PF;
+	f |= LR35902::flags::NF;
 }
 
-void Z80::sbc16(const uint16_t b) {
-	const uint32_t s = hl - b - ((f&Z80::flags::CF) ? 1 : 0);
+void LR35902::sbc16(const uint16_t b) {
+	const uint32_t s = hl - b - ((f&LR35902::flags::CF) ? 1 : 0);
 	const uint32_t c = (s ^ hl ^ b) & 0x18000;
 	hl = static_cast<uint16_t>(s);
-	f &= ~(Z80::flags::CF | Z80::flags::HF | Z80::flags::PF);
-	f |= Z80::flags::NF;
+	f &= ~(LR35902::flags::CF | LR35902::flags::HF);
+	f |= LR35902::flags::NF;
 	if (s > 0xffff)
-		f |= Z80::flags::CF;
+		f |= LR35902::flags::CF;
 	if (c & 0x1000)
-		f |= Z80::flags::HF;
-	if (((c >> 15) & 0x1) ^ ((c >> 16) & 0x1))
-		f |= Z80::flags::PF;
+		f |= LR35902::flags::HF;
 	setSZXY(hl);
 }
 
-void Z80::add16(uint16_t& r1, const uint16_t r2)
+void LR35902::add16(uint16_t& r1, const uint16_t r2)
 {
 	const uint16_t previous_r1 = r1;
 	r1 += r2;
-	f &= ~(Z80::flags::NF | Z80::flags::CF | Z80::flags::HF);
+	f &= ~(LR35902::flags::NF | LR35902::flags::CF | LR35902::flags::HF);
 	if (r2 > 0xffff - previous_r1)
-		f |= Z80::flags::CF;
+		f |= LR35902::flags::CF;
 	if (((previous_r1 ^ r1 ^ r2) >> 11) & 0x1)
-		f |= Z80::flags::HF;
+		f |= LR35902::flags::HF;
 }
 
-void Z80::adc16(const uint16_t b) {
-	const uint32_t s = hl + b + ((f&Z80::flags::CF) ? 1 : 0);
+void LR35902::adc16(const uint16_t b) {
+	const uint32_t s = hl + b + ((f&LR35902::flags::CF) ? 1 : 0);
 	const uint32_t c = s ^ hl ^ b;
 	hl = static_cast<uint16_t>(s);
-	f &= ~(Z80::flags::NF | Z80::flags::CF | Z80::flags::HF | Z80::flags::PF);
+	f &= ~(LR35902::flags::NF | LR35902::flags::CF | LR35902::flags::HF);
 	if (s > 0xffff)
-		f |= Z80::flags::CF;
+		f |= LR35902::flags::CF;
 	if (c & 0x1000)
-		f |= Z80::flags::HF;
-	if (((c >> 15) & 0x1) ^ ((c >> 16) & 0x1))
-		f |= Z80::flags::PF;
+		f |= LR35902::flags::HF;
 	setSZXY(hl);
 }
 
-void Z80::bit(const uint8_t value, const uint8_t b) {
-	f &= Z80::flags::CF;
-	f |= Z80::flags::HF;
-	f |= (value & (1 << b)) ? Z80::flags::SF : Z80::flags::ZF | Z80::flags::VF;
+void LR35902::bit(const uint8_t value, const uint8_t b) {
+	f &= LR35902::flags::CF;
+	f |= LR35902::flags::HF;
+	f |= (value & (1 << b)) ? 0 : LR35902::flags::ZF;
 }
 
-void Z80::neg() {
+void LR35902::neg() {
 	const uint8_t ap = a;
 	a = -a;
 
 	setSZXY(a);
-	f &= ~(Z80::flags::PF | Z80::flags::CF | Z80::flags::HF);
+	f &= ~(LR35902::flags::CF | LR35902::flags::HF);
 	if (ap != 0)
-		f |= Z80::flags::CF;
-	if (ap == 0x80)
-		f |= Z80::flags::PF;
-	f |= Z80::flags::NF;
+		f |= LR35902::flags::CF;
+	f |= LR35902::flags::NF;
 	if ((a ^ ap) & 0x10)
-		f |= Z80::flags::HF;
+		f |= LR35902::flags::HF;
 }
 
 
-void Z80::rrd() {
+void LR35902::rrd() {
 	const uint8_t tmp = a & 0x0f;
 	a = (a & 0xf0) | (databus & 0x0f);
 	databus = static_cast<uint8_t>((databus >> 4) | (tmp << 4));
 
-	f &= Z80::flags::CF;
+	f &= LR35902::flags::CF;
 	setSZXY(a);
-	setP(a);
 }
 
-void Z80::rld() {
+void LR35902::rld() {
 	const uint8_t tmp = a & 0x0f;
 	a = (a & 0xf0) | (databus >> 4);
 	databus = static_cast<uint8_t>((databus << 4) | tmp);
 
-	f &= Z80::flags::CF;
+	f &= LR35902::flags::CF;
 	setSZXY(a);
-	setP(a);
 }
 
-uint8_t Z80::rlc(const uint8_t value) {
+uint8_t LR35902::rlc(const uint8_t value) {
 	const uint8_t result = (value << 1) | (value >> 7);
-	f = (value & 0x80) ? Z80::flags::CF : 0;
+	f = (value & 0x80) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::rrc(const uint8_t value) {
+uint8_t LR35902::rrc(const uint8_t value) {
 	const uint8_t result = (value >> 1) | (value << 7);
-	f = (value & 0x01) ? Z80::flags::CF : 0;
+	f = (value & 0x01) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::rr(const uint8_t value) {
+uint8_t LR35902::rr(const uint8_t value) {
 	const uint8_t result = (value >> 1) | ((f&flags::CF) ? 0x80 : 0);
-	f = (value & 0x01) ? Z80::flags::CF : 0;
+	f = (value & 0x01) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::rl(const uint8_t value) {
+uint8_t LR35902::rl(const uint8_t value) {
 	const uint8_t result = (value << 1) | ((f&flags::CF) ? 0x01 : 0);
-	f = (value & 0x80) ? Z80::flags::CF : 0;
+	f = (value & 0x80) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::srl(const uint8_t value) {
+uint8_t LR35902::srl(const uint8_t value) {
 	const uint8_t result = value >> 1;
-	f = (value & 0x01) ? Z80::flags::CF : 0;
+	f = (value & 0x01) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::sra(const uint8_t value) {
+uint8_t LR35902::sra(const uint8_t value) {
 	const uint8_t result = value >> 1 | (value & 0x80);
-	f = (value & 0x01) ? Z80::flags::CF : 0;
+	f = (value & 0x01) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::sla(const uint8_t value) {
+uint8_t LR35902::sla(const uint8_t value) {
 	const uint8_t result = value << 1;
-	f = (value & 0x80) ? Z80::flags::CF : 0;
+	f = (value & 0x80) ? LR35902::flags::CF : 0;
 	setSZXY(result);
-	setP(result);
 	return result;
 }
-uint8_t Z80::sll(const uint8_t value) {
-	const uint8_t result = (value << 1) | 1;
-	f = (value & 0x80) ? Z80::flags::CF : 0;
-	setSZXY(result);
-	setP(result);
+uint8_t LR35902::swap(const uint8_t value) {
+	const uint8_t result = (value << 4) | (value>>4);
+	f = (result) ? 0 : flags::ZF;
 	return result;
 }

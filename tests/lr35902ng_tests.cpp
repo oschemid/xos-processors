@@ -1,6 +1,6 @@
-#include "i8080ng_tests.h"
-#include "i8080.h"
-#include "../src/cpu/z80/z80debugging.h"
+#include "lr35902.h"
+
+#include <fstream>
 #include <iostream>
 #include <chrono>
 
@@ -8,20 +8,20 @@
 using namespace std::chrono;
 using namespace xprocessors::cpu;
 
+
 namespace tests
 {
-	struct i8080NG
+	struct lr35902impl
 	{
-		i8080dbg _cpu;
+		LR35902dbg _cpu;
 		uint8_t* _memory;
 
-		i8080NG()
+		lr35902impl()
 		{
-			_cpu.setMemoryAccessor([this](uint16_t a) { return _memory[a]; });
 			_cpu.init();
 			_memory = new uint8_t[0x10000];
 		}
-		~i8080NG()
+		~lr35902impl()
 		{
 			delete[] _memory;
 		}
@@ -33,27 +33,22 @@ namespace tests
 			uint8_t maxinstruction = 2;
 			bool transitionm1 = false;
 			_cpu.reset();
-			_cpu.setReady();
 			while (instruction < maxinstruction)
 			{
 				uint16_t pins = _cpu.getControlPins();
 				uint8_t databus = _cpu.getDataBus();
-				if (pins & i8080::PIN_SYNC)
-				{
-					if (databus & i8080::STATUS_HLTA)
-						instruction++;
-					if (databus & i8080::STATUS_M1)
-						instruction++;
-					if (instruction == 2)
-						break;
-				}
 				_cpu.tick();
 				cycles++;
 				pins = _cpu.getControlPins();
-				if (pins & i8080::PIN_DBIN)
+				if (pins & (LR35902::PIN_MREQ | LR35902::PIN_RD))
 				{
 					const uint16_t address = _cpu.getAddressBus();
 					_cpu.setDataBus(_memory[address]);
+				}
+				if (pins & (LR35902::PIN_M1))
+				{
+					if (transitionm1)
+						instruction++;
 				}
 			}
 			return cycles;
@@ -68,7 +63,7 @@ namespace tests
 			uint8_t result = executeOne() - 1;
 			if (result != cycles)
 			{
-				 std::cout << "Difference : " << uint16_t(cycles) << " expected != " << uint16_t(result) << std::endl;
+				std::cout << "Difference : " << uint16_t(cycles) << " expected != " << uint16_t(result) << std::endl;
 			}
 			else
 			{
@@ -91,85 +86,72 @@ namespace tests
 		bool runTest(const std::string& filename, const uint64_t cycles_expected)
 		{
 			uint64_t cycles = 0;
-			load(0x100, filename);
-			_memory[0] = 0xD3;
-			_memory[1] = 0x00;
-			_memory[5] = 0xD3;
-			_memory[6] = 0x01;
-			_memory[7] = 0xC9;
+			load(0x0, filename);
 			_cpu.reset(0x100);
-			_cpu.setReady();
-
-			Z80debugging debugger;
-			debugger.activateDisassembly();
+			_cpu.setMemoryAccessor([this](const uint16_t a) { return _memory[a]; });
 
 			auto start = high_resolution_clock::now();
 			uint32_t instruction = 0;
 			bool finished = false;
 			bool ioexpected = false;
-//			_cpu.pause();
-//			std::ofstream stream("log.log");
+			char c;
+
+			_cpu.pause();
+			std::ofstream stre("log.log");
+
 			while (!finished)
 			{
-				if (_cpu.isrunning())
+				if (!_cpu.isrunning())
 				{
-					_cpu.tick();
-					cycles++;
-					const uint16_t pins = _cpu.getControlPins();
-					if (pins & i8080::PIN_SYNC)
+//					stre << _cpu.opcode() << std::endl;
+					_cpu.runStep();
+					continue;
+				}
+				_cpu.tick();
+				cycles++;
+				const uint16_t pins = _cpu.getControlPins();
+				if ((pins & (LR35902::PIN_MREQ | LR35902::PIN_RD)) == (LR35902::PIN_MREQ | LR35902::PIN_RD))
+				{
+					const uint16_t address = _cpu.getAddressBus();
+					_cpu.setDataBus(_memory[address]);
+				}
+				if ((pins & (LR35902::PIN_MREQ | LR35902::PIN_WR)) == (LR35902::PIN_MREQ | LR35902::PIN_WR))
+				{
+					const uint16_t address = _cpu.getAddressBus();
+					if (address < 0x8000)
 					{
-						if (_cpu.getDataBus() & i8080::STATUS_M1)
-							instruction++;
-						ioexpected = (_cpu.getDataBus() & i8080::STATUS_OUT);
-					}
-					if ((pins & i8080::PIN_DBIN))
-					{
-						const uint16_t address = _cpu.getAddressBus();
-						_cpu.setDataBus(_memory[address]);
-					}
-					if ((pins & i8080::PIN_WR))
-					{
-						const uint16_t address = _cpu.getAddressBus();
-						if (ioexpected)
+						if ((address >= 0x2000) && (address < 0x4000))
 						{
-							if ((_cpu.getAddressBus() & 0x00ff) == 0)
-							{
-								cycles++; // STOPWRITE
-								finished = true;
-							}
-							if ((_cpu.getAddressBus() & 0x00ff) == 0x0001)
-							{
-								uint8_t operation = _cpu.getc();
-								if (operation == 2)
-								{ // print a character stored in E
-									std::cout << (char)(_cpu.gete());
-								}
-								else if (operation == 9)
-								{ // print from memory at (DE) until '$' char
-									uint16_t addr = _cpu.getde();
-									do
-									{
-										std::cout << (char)(_memory[addr++]);
-									} while (_memory[addr] != '$');
-								}
-							}
-						}
-						else
-						{
+//							selectedROMbanks = value & 0x1f;
+//							if (value == 0)
+//								selectedROMbanks++;
 							_memory[address] = _cpu.getDataBus();
 						}
 					}
-				}
-				else
-				{
-//					std::cout << _cpu.opcode() << std::endl;
-//					stream << _cpu.opcode() << std::endl;
-					_cpu.runStep();
+					if (address >= 0xff00)
+					{
+						if (address >= 0xff80)
+							_memory[address] = _cpu.getDataBus();
+						switch (address & 0xff)
+						{
+						case 1:
+							c = _cpu.getDataBus();
+							break;
+						case 2:
+							if (_cpu.getDataBus() == 0x81)
+								std::cout << (char)c;
+							break;
+						}
+					}
+					else
+					{
+						_memory[address] = _cpu.getDataBus();
+					}
 				}
 			}
 			auto stop = high_resolution_clock::now();
 			auto duration = duration_cast<milliseconds>(stop - start);
-			std::cout << std::endl << "Duration : " << duration.count() << "ms" << std::endl;
+			std::cout << std::endl << "Tests Duration : " << duration.count() << "ms" << std::endl;
 			if (cycles_expected > 0)
 				std::cout << "Expected cycles : " << cycles_expected << " - Cycles : " << cycles << "(" << instruction << " instructions)" << std::endl;
 			return true;
@@ -211,13 +193,11 @@ namespace tests
 		{ 0xf8000000, 5 }, { 0xf9000000, 5 }, { 0xfa000000, 10 }, { 0xfb000000, 4}, { 0xfc000000, 11 }, {0xfe000000, 7}, { 0xff000000, 11},
 	};
 
-	bool i8080_run()
+	bool lr35902_run()
 	{
-		i8080NG cpu;
-		cpu.runTest("tests/data/i8080/TST8080.COM", 4924);
-		cpu.runTest("tests/data/i8080/8080PRE.COM", 7817);
-		cpu.runTest("tests/data/i8080/CPUTEST.COM", 255653383);
-		cpu.runTest("tests/data/i8080/8080EXM.COM", 23803381171);
+		lr35902impl cpu;
+//		cpu.runTest("tests/data/lr35902/blargg/09-op r,r.gb", 0);
+		cpu.runTest("tests/data/lr35902/blargg/cpu_instrs.gb", 0);
 		//		cpu.runTestPerfs(1000000000);
 		std::cout << "check cycles" << std::endl;
 		for (auto [o, oo] : opcodes)

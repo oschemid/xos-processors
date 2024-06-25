@@ -42,6 +42,7 @@ namespace xprocessors::cpu
 		uint16_t getAddressBus() const { return _addressbus; }
 		uint8_t getDataBus() const { return _databus; }
 		uint8_t getControlPins() const { return _pins; }
+		
 		void setDataBus(const uint8_t d) { _databus = d; }
 		void setReady() { _pins |= PIN_READY; }
 		void resetReady() { _pins &= ~PIN_READY; }

@@ -2,5 +2,5 @@
 
 namespace tests
 {
-	bool i8080_run();
+	bool lr35902_run();
 }

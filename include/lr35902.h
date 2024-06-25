@@ -5,7 +5,7 @@
 
 namespace xprocessors::cpu
 {
-	class Z80
+	class LR35902
 	{
 	public:
 		static const uint16_t PIN_M1 = 1;
@@ -17,16 +17,12 @@ namespace xprocessors::cpu
 		static const uint16_t PIN_RFSH = 64;
 		static const uint16_t PIN_INT = 128;
 
-		enum flags {
-			SF = 0x80,
-			ZF = 0x40,
-			XF = 0x20,
-			HF = 0x10,
-			YF = 0x08,
-			PF = 0x04,
-			VF = 0x04,
-			NF = 0x02,
-			CF = 0x01
+		enum flags
+		{
+			ZF = 0x80,
+			NF = 0x40,
+			HF = 0x20,
+			CF = 0x10
 		};
 
 	public:
@@ -47,12 +43,7 @@ namespace xprocessors::cpu
 		union { struct { register8_t c; register8_t b; }; register16_t bc; };
 		union { struct { register8_t e; register8_t d; }; register16_t de; };
 		union { struct { register8_t l; register8_t h; }; register16_t hl; };
-		union { struct { register8_t ixl; register8_t ixh; }; register16_t ix; };
-		union { struct { register8_t iyl; register8_t iyh; }; register16_t iy; };
-		register8_t i;
-		register8_t r;
 
-		register16_t afprime, bcprime, deprime, hlprime;
 		union { struct { register8_t pcl; register8_t pch; }; register16_t pc; };
 		union { struct { register8_t spl; register8_t sph; }; register16_t sp; };
 		union { struct { register8_t z; register8_t w; }; register16_t wz; };
@@ -61,14 +52,15 @@ namespace xprocessors::cpu
 		bool iff1_requested;
 		bool halted;
 
-		enum class interrupt_mode {
+		enum class interrupt_mode
+		{
 			mode_0,
 			mode_1,
 			mode_2
 		} im;
 
 		// Process parameter
-		enum { NORMAL = 0, CB, DD, FD, ED, DDCB } hli_idx;
+		enum { NORMAL = 0, CB } hli_idx;
 		uint8_t _opcode;
 
 		// Pins
@@ -77,7 +69,8 @@ namespace xprocessors::cpu
 		uint16_t pins;
 
 	protected:
-		enum opcode_steps {
+		enum opcode_steps
+		{
 			FETCH = 0,
 			FETCH_PREFIX,
 			FETCHWAIT,
@@ -95,6 +88,7 @@ namespace xprocessors::cpu
 			EI,
 			IM1,
 			IM2,
+			NOVALID,
 
 			// Copy 16bits register into another register
 			LD_BC_INTO_WZ,
@@ -105,15 +99,10 @@ namespace xprocessors::cpu
 			LD_SP_INTO_WZ,
 			LD_WZ_INTO_SP,
 			LD_WZ_INTO_HL,
-			LD_WZ_INTO_IX,
-			LD_WZ_INTO_IY,
+			LD_FF_INTO_WZH,
 
 			// Copy 8bits register (or databus) into another register
 			// Into A
-			LD_IXH_INTO_A,
-			LD_IXL_INTO_A,
-			LD_IYH_INTO_A,
-			LD_IYL_INTO_A,
 			LD_DB_INTO_A,
 			LD_DB_INTO_A_FLAGS,
 
@@ -127,10 +116,6 @@ namespace xprocessors::cpu
 			LD_E_INTO_B,
 			LD_H_INTO_B,
 			LD_L_INTO_B,
-			LD_IXH_INTO_B,
-			LD_IXL_INTO_B,
-			LD_IYH_INTO_B,
-			LD_IYL_INTO_B,
 			LD_DB_INTO_B,
 			LD_DB_INTO_B_FLAGS,
 
@@ -141,10 +126,6 @@ namespace xprocessors::cpu
 			LD_E_INTO_C,
 			LD_H_INTO_C,
 			LD_L_INTO_C,
-			LD_IXH_INTO_C,
-			LD_IXL_INTO_C,
-			LD_IYH_INTO_C,
-			LD_IYL_INTO_C,
 			LD_DB_INTO_C,
 
 			// Into D
@@ -154,10 +135,6 @@ namespace xprocessors::cpu
 			LD_E_INTO_D,
 			LD_H_INTO_D,
 			LD_L_INTO_D,
-			LD_IXH_INTO_D,
-			LD_IXL_INTO_D,
-			LD_IYH_INTO_D,
-			LD_IYL_INTO_D,
 			LD_DB_INTO_D,
 			LD_DB_INTO_D_FLAGS,
 
@@ -168,10 +145,6 @@ namespace xprocessors::cpu
 			LD_D_INTO_E,
 			LD_H_INTO_E,
 			LD_L_INTO_E,
-			LD_IXH_INTO_E,
-			LD_IXL_INTO_E,
-			LD_IYH_INTO_E,
-			LD_IYL_INTO_E,
 			LD_DB_INTO_E,
 
 			// Into H
@@ -192,42 +165,6 @@ namespace xprocessors::cpu
 			LD_E_INTO_L,
 			LD_H_INTO_L,
 			LD_DB_INTO_L,
-
-			// Into IXH
-			LD_A_INTO_IXH,
-			LD_B_INTO_IXH,
-			LD_C_INTO_IXH,
-			LD_D_INTO_IXH,
-			LD_E_INTO_IXH,
-			LD_IXL_INTO_IXH,
-			LD_DB_INTO_IXH,
-
-			// Into IXL
-			LD_A_INTO_IXL,
-			LD_B_INTO_IXL,
-			LD_C_INTO_IXL,
-			LD_D_INTO_IXL,
-			LD_E_INTO_IXL,
-			LD_IXH_INTO_IXL,
-			LD_DB_INTO_IXL,
-
-			// Into IYH
-			LD_A_INTO_IYH,
-			LD_B_INTO_IYH,
-			LD_C_INTO_IYH,
-			LD_D_INTO_IYH,
-			LD_E_INTO_IYH,
-			LD_IYL_INTO_IYH,
-			LD_DB_INTO_IYH,
-
-			// Into IXL
-			LD_A_INTO_IYL,
-			LD_B_INTO_IYL,
-			LD_C_INTO_IYL,
-			LD_D_INTO_IYL,
-			LD_E_INTO_IYL,
-			LD_IYH_INTO_IYL,
-			LD_DB_INTO_IYL,
 
 			// Into another
 			LD_DB_INTO_SPH,
@@ -258,10 +195,6 @@ namespace xprocessors::cpu
 			WRITEL,
 			WRITEPCL,
 			WRITEPCH,
-			WRITEIXL,
-			WRITEIXH,
-			WRITEIYL,
-			WRITEIYH,
 			WRITESPL,
 			WRITESPH,
 			WRITE,
@@ -273,10 +206,6 @@ namespace xprocessors::cpu
 			PUSH_E,
 			PUSH_H,
 			PUSH_L,
-			PUSH_IXH,
-			PUSH_IXL,
-			PUSH_IYH,
-			PUSH_IYL,
 			PUSH_PCL,
 			PUSH_PCH,
 			IOWRITE,
@@ -314,10 +243,6 @@ namespace xprocessors::cpu
 			JPNZ,
 			JPC,
 			JPNC,
-			JPPE,
-			JPPO,
-			JPM,
-			JPP,
 			JPHL,
 			JPIX,
 			JPIY,
@@ -331,10 +256,6 @@ namespace xprocessors::cpu
 			INC_HL,
 
 			DEC_HL,
-			INC_IX,
-			DEC_IX,
-			INC_IY,
-			DEC_IY,
 			INCSP,
 			DECSP,
 			DECPC,
@@ -359,19 +280,9 @@ namespace xprocessors::cpu
 			DEC_H,
 			INC_L,
 			DEC_L,
-			INC_IXH,
-			DEC_IXH,
-			INC_IXL,
-			DEC_IXL,
-			INC_IYH,
-			DEC_IYH,
-			INC_IYL,
-			DEC_IYL,
 
 			ADD_DB_TO_WZ,
 			ADD_WZ_TO_HL,
-			ADD_WZ_TO_IX,
-			ADD_WZ_TO_IY,
 			ADC_WZ_TO_HL,
 			SBC_WZ_TO_HL,
 
@@ -383,10 +294,6 @@ namespace xprocessors::cpu
 			ADD_E_TO_A,
 			ADD_H_TO_A,
 			ADD_L_TO_A,
-			ADD_IXH_TO_A,
-			ADD_IXL_TO_A,
-			ADD_IYH_TO_A,
-			ADD_IYL_TO_A,
 
 			ADC_DB_TO_A,
 			ADC_B_TO_A,
@@ -396,10 +303,6 @@ namespace xprocessors::cpu
 			ADC_H_TO_A,
 			ADC_L_TO_A,
 			ADC_A_TO_A,
-			ADC_IXH_TO_A,
-			ADC_IXL_TO_A,
-			ADC_IYH_TO_A,
-			ADC_IYL_TO_A,
 
 			SUB_DB_TO_A,
 			SUB_A_TO_A,
@@ -409,10 +312,6 @@ namespace xprocessors::cpu
 			SUB_E_TO_A,
 			SUB_H_TO_A,
 			SUB_L_TO_A,
-			SUB_IXH_TO_A,
-			SUB_IXL_TO_A,
-			SUB_IYH_TO_A,
-			SUB_IYL_TO_A,
 
 			SBC_DB_TO_A,
 			SBC_A_TO_A,
@@ -422,10 +321,6 @@ namespace xprocessors::cpu
 			SBC_E_TO_A,
 			SBC_H_TO_A,
 			SBC_L_TO_A,
-			SBC_IXH_TO_A,
-			SBC_IXL_TO_A,
-			SBC_IYH_TO_A,
-			SBC_IYL_TO_A,
 
 			AND_DB,
 			AND_B,
@@ -434,10 +329,6 @@ namespace xprocessors::cpu
 			AND_E,
 			AND_H,
 			AND_L,
-			AND_IXH,
-			AND_IXL,
-			AND_IYH,
-			AND_IYL,
 			AND_A,
 			OR_DB,
 			OR_B,
@@ -446,10 +337,6 @@ namespace xprocessors::cpu
 			OR_E,
 			OR_H,
 			OR_L,
-			OR_IXH,
-			OR_IXL,
-			OR_IYH,
-			OR_IYL,
 			OR_A,
 			XOR_DB,
 			XOR_B,
@@ -458,10 +345,6 @@ namespace xprocessors::cpu
 			XOR_E,
 			XOR_H,
 			XOR_L,
-			XOR_IXH,
-			XOR_IXL,
-			XOR_IYH,
-			XOR_IYL,
 			XOR_A,
 			CP_DB,
 			CP_DB_NOCARRY,
@@ -471,10 +354,6 @@ namespace xprocessors::cpu
 			CP_E,
 			CP_H,
 			CP_L,
-			CP_IXH,
-			CP_IXL,
-			CP_IYH,
-			CP_IYL,
 			CP_A,
 
 			RLCA,
@@ -489,8 +368,6 @@ namespace xprocessors::cpu
 			RRD,
 			RLD,
 
-			EXAF,
-			EXX,
 			EX_DE_HL,
 
 			LD_ITER,
@@ -499,10 +376,6 @@ namespace xprocessors::cpu
 			STOPNZ,
 			STOPC,
 			STOPNC,
-			STOPPO,
-			STOPPE,
-			STOPM,
-			STOPP,
 
 			// BIT
 			BIT0_A,
@@ -742,14 +615,14 @@ namespace xprocessors::cpu
 			SLA_H,
 			SLA_L,
 			SLA_DB,
-			SLL_A,
-			SLL_B,
-			SLL_C,
-			SLL_D,
-			SLL_E,
-			SLL_H,
-			SLL_L,
-			SLL_DB,
+			SWAP_A,
+			SWAP_B,
+			SWAP_C,
+			SWAP_D,
+			SWAP_E,
+			SWAP_H,
+			SWAP_L,
+			SWAP_DB,
 			SRA_A,
 			SRA_B,
 			SRA_C,
@@ -766,14 +639,10 @@ namespace xprocessors::cpu
 			SRL_H,
 			SRL_L,
 			SRL_DB,
-		} ;
+		};
 
 		static const std::vector<opcode_steps> opcodes_timing[];
 		static const std::vector<opcode_steps> opcodes_timing_cb[];
-		static const std::vector<opcode_steps> opcodes_timing_dd[];
-		static const std::vector<opcode_steps> opcodes_timing_ddcb[];
-		static const std::vector<opcode_steps> opcodes_timing_ed[];
-		static const std::vector<opcode_steps> opcodes_timing_fd[];
 
 		void fetch();
 		void fetchwait();
@@ -796,7 +665,6 @@ namespace xprocessors::cpu
 
 		void setSZXY(const uint8_t);
 		void setSZXY(const uint16_t);
-		void setP(const uint8_t);
 
 		uint8_t inc(const uint8_t);
 		uint8_t dec(const uint8_t);
@@ -816,7 +684,7 @@ namespace xprocessors::cpu
 		uint8_t srl(const uint8_t);
 		uint8_t sra(const uint8_t);
 		uint8_t sla(const uint8_t);
-		uint8_t sll(const uint8_t);
+		uint8_t swap(const uint8_t);
 		void add(const uint8_t);
 		void add16(uint16_t&, const uint16_t);
 		void adc(const uint8_t);
@@ -828,19 +696,16 @@ namespace xprocessors::cpu
 		void ora(const uint8_t);
 		void xra(const uint8_t);
 		void cp(const uint8_t, const bool = false);
-		void exaf();
-		void exx();
 		void exdehl();
 		void ld_iter();
 		void cp_iter();
-		void cpd();
 		void bit(const uint8_t, const uint8_t);
 	};
 
-	class Z80dbg : public Z80
+	class LR35902dbg : public LR35902
 	{
 	public:
-		Z80dbg();
+		LR35902dbg();
 		void setMemoryAccessor(std::function<uint8_t(const uint16_t)>);
 
 		[[nodiscard]] bool isrunning();
@@ -860,8 +725,5 @@ namespace xprocessors::cpu
 		bool _step1{ false };
 
 		string disassembly(uint16_t&) const;
-		string disassembly_dd(uint16_t&) const;
-		string disassembly_ed(uint16_t&) const;
-		string disassembly_fd(uint16_t&) const;
 	};
 }
