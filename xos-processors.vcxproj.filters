@@ -24,22 +24,10 @@
     <ClCompile Include="src\cpu\z80family\i8080oldsolution.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="tests\i8080_tests.cpp">
+    <ClCompile Include="src\cpu\z80family\lr35902oldsolution.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="tests\z80_tests.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
-    <ClCompile Include="src\cpu\z80family\lr35902.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
-    <ClCompile Include="tests\cpu_tests.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
-    <ClCompile Include="tests\lr35902_tests.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
-    <ClCompile Include="tests\z80ng_tests.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="src\cpu\z80\z80debugging.cpp">
@@ -72,19 +60,34 @@
     <ClCompile Include="src\cpu\z80\z80opcodes_ed.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\i8080.cpp">
+    <ClCompile Include="src\cpu\i8080\i8080.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\i8080opcodes.cpp">
+    <ClCompile Include="src\cpu\i8080\i8080opcodes.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="tests\i8080ng_tests.cpp">
+    <ClCompile Include="tests\i8080_tests.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\i8080debugging.cpp">
+    <ClCompile Include="src\cpu\i8080\i8080debugging.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
-    <ClCompile Include="src\experimental\i8080debuggingopcodes.cpp">
+    <ClCompile Include="src\cpu\i8080\i8080debuggingopcodes.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu\sm83\sm83.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu\sm83\sm83opcodes.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="tests\sm83ng_tests.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu\sm83\sm83debugging.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cpu\sm83\sm83debuggingopcodes.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
   </ItemGroup>
@@ -101,22 +104,13 @@
     <ClInclude Include="src\cpu\z80family\cpus.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="tests\i8080_tests.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="tests\z80_tests.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
     <ClInclude Include="src\cpu\z80family\opcodes.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="src\cpu\z80family\lr35902.h">
+    <ClInclude Include="src\cpu\z80family\lr35902oldsolution.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="tests\cpu_tests.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="tests\lr35902_tests.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="src\cpu\z80family\opcodes_cb.h">
@@ -131,16 +125,10 @@
     <ClInclude Include="include\mb14241.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="tests\z80ng_tests.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
     <ClInclude Include="include\z80.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="tests\data\z80\perfs.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="src\cpu\z80\z80debugging.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="src\cpu\z80family\z80oldsolution.h">
@@ -149,7 +137,7 @@
     <ClInclude Include="include\i8080.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="tests\i8080ng_tests.h">
+    <ClInclude Include="include\sm83.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
   </ItemGroup>

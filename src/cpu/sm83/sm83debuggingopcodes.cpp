@@ -1,4 +1,4 @@
-#include "lr35902.h"
+#include "sm83.h"
 #include <sstream>
 
 
@@ -16,7 +16,7 @@ static unsigned int getNN(std::function<uint8_t(const uint16_t)> memory_fn, uint
 
 namespace xprocessors::cpu
 {
-	string LR35902dbg::disassembly(uint16_t& address) const
+	string sm83dbg::disassembly(uint16_t& address) const
 	{
 		std::stringstream disasm;
 		switch (_memoryfn(address++))

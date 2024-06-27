@@ -1,4 +1,4 @@
-#include "lr35902.h"
+#include "sm83.h"
 
 #include <fstream>
 #include <iostream>
@@ -11,17 +11,17 @@ using namespace xprocessors::cpu;
 
 namespace tests
 {
-	struct lr35902impl
+	struct sm83impl
 	{
-		LR35902dbg _cpu;
+		sm83dbg _cpu;
 		uint8_t* _memory;
 
-		lr35902impl()
+		sm83impl()
 		{
 			_cpu.init();
 			_memory = new uint8_t[0x10000];
 		}
-		~lr35902impl()
+		~sm83impl()
 		{
 			delete[] _memory;
 		}
@@ -40,12 +40,12 @@ namespace tests
 				_cpu.tick();
 				cycles++;
 				pins = _cpu.getControlPins();
-				if (pins & (LR35902::PIN_MREQ | LR35902::PIN_RD))
+				if (pins & (sm83::PIN_MREQ | sm83::PIN_RD))
 				{
 					const uint16_t address = _cpu.getAddressBus();
 					_cpu.setDataBus(_memory[address]);
 				}
-				if (pins & (LR35902::PIN_M1))
+				if (pins & (sm83::PIN_M1))
 				{
 					if (transitionm1)
 						instruction++;
@@ -110,12 +110,12 @@ namespace tests
 				_cpu.tick();
 				cycles++;
 				const uint16_t pins = _cpu.getControlPins();
-				if ((pins & (LR35902::PIN_MREQ | LR35902::PIN_RD)) == (LR35902::PIN_MREQ | LR35902::PIN_RD))
+				if ((pins & (sm83::PIN_MREQ | sm83::PIN_RD)) == (sm83::PIN_MREQ | sm83::PIN_RD))
 				{
 					const uint16_t address = _cpu.getAddressBus();
 					_cpu.setDataBus(_memory[address]);
 				}
-				if ((pins & (LR35902::PIN_MREQ | LR35902::PIN_WR)) == (LR35902::PIN_MREQ | LR35902::PIN_WR))
+				if ((pins & (sm83::PIN_MREQ | sm83::PIN_WR)) == (sm83::PIN_MREQ | sm83::PIN_WR))
 				{
 					const uint16_t address = _cpu.getAddressBus();
 					if (address < 0x8000)
@@ -193,11 +193,11 @@ namespace tests
 		{ 0xf8000000, 5 }, { 0xf9000000, 5 }, { 0xfa000000, 10 }, { 0xfb000000, 4}, { 0xfc000000, 11 }, {0xfe000000, 7}, { 0xff000000, 11},
 	};
 
-	bool lr35902_run()
+	bool sm83_run()
 	{
-		lr35902impl cpu;
-//		cpu.runTest("tests/data/lr35902/blargg/09-op r,r.gb", 0);
-		cpu.runTest("tests/data/lr35902/blargg/cpu_instrs.gb", 0);
+		sm83impl cpu;
+//		cpu.runTest("tests/data/sm83/blargg/09-op r,r.gb", 0);
+		cpu.runTest("tests/data/sm83/blargg/cpu_instrs.gb", 0);
 		//		cpu.runTestPerfs(1000000000);
 		std::cout << "check cycles" << std::endl;
 		for (auto [o, oo] : opcodes)

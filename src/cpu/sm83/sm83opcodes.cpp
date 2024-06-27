@@ -1,10 +1,10 @@
-#include "lr35902.h"
+#include "sm83.h"
 
 
 using namespace xprocessors::cpu;
 
 
-const std::vector<LR35902::opcode_steps> LR35902::opcodes_timing[] =
+const std::vector<sm83::opcode_steps> sm83::opcodes_timing[] =
 {
 	// 0x00 - 0x0F
 	{ NOP, FETCH }, // NOP
@@ -299,7 +299,7 @@ const std::vector<LR35902::opcode_steps> LR35902::opcodes_timing[] =
 	{ DI, READIO, WAIT, LD_DB_INTO_WZL, NOP, LD_I_INTO_WZH, NOP, NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, NOP, READWR, WAIT, FILLPCL, READWR, WAIT, FILLPCH, FETCH }
 };
 
-const std::vector<LR35902::opcode_steps> LR35902::opcodes_timing_cb[] =
+const std::vector<sm83::opcode_steps> sm83::opcodes_timing_cb[] =
 {
 	// 0x00 - 0x0F
 	{ RLC_B, FETCH }, // RLC B

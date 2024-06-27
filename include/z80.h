@@ -833,7 +833,6 @@ namespace xprocessors::cpu
 		void exdehl();
 		void ld_iter();
 		void cp_iter();
-		void cpd();
 		void bit(const uint8_t, const uint8_t);
 	};
 

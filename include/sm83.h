@@ -5,7 +5,7 @@
 
 namespace xprocessors::cpu
 {
-	class LR35902
+	class sm83
 	{
 	public:
 		static const uint16_t PIN_M1 = 1;
@@ -78,10 +78,6 @@ namespace xprocessors::cpu
 			WAIT,
 			HALT,
 			PREFIX_CB,
-			PREFIX_DD,
-			PREFIX_DDCB,
-			PREFIX_ED,
-			PREFIX_FD,
 			ERROR,
 			NOP,
 			DI,
@@ -94,8 +90,6 @@ namespace xprocessors::cpu
 			LD_BC_INTO_WZ,
 			LD_DE_INTO_WZ,
 			LD_HL_INTO_WZ,
-			LD_IX_INTO_WZ,
-			LD_IY_INTO_WZ,
 			LD_SP_INTO_WZ,
 			LD_WZ_INTO_SP,
 			LD_WZ_INTO_HL,
@@ -104,7 +98,6 @@ namespace xprocessors::cpu
 			// Copy 8bits register (or databus) into another register
 			// Into A
 			LD_DB_INTO_A,
-			LD_DB_INTO_A_FLAGS,
 
 			// Into F
 			LD_DB_INTO_F,
@@ -117,7 +110,6 @@ namespace xprocessors::cpu
 			LD_H_INTO_B,
 			LD_L_INTO_B,
 			LD_DB_INTO_B,
-			LD_DB_INTO_B_FLAGS,
 
 			// Into C
 			LD_A_INTO_C,
@@ -136,7 +128,6 @@ namespace xprocessors::cpu
 			LD_H_INTO_D,
 			LD_L_INTO_D,
 			LD_DB_INTO_D,
-			LD_DB_INTO_D_FLAGS,
 
 			// Into E
 			LD_A_INTO_E,
@@ -155,7 +146,6 @@ namespace xprocessors::cpu
 			LD_E_INTO_H,
 			LD_L_INTO_H,
 			LD_DB_INTO_H,
-			LD_DB_INTO_H_FLAGS,
 
 			// Into L
 			LD_A_INTO_L,
@@ -172,11 +162,6 @@ namespace xprocessors::cpu
 			LD_DB_INTO_WZH,
 			LD_DB_INTO_WZL,
 			LD_A_INTO_WZH,
-			LD_DB_INTO_DB_FLAGS,
-			LD_A_INTO_I,
-			LD_I_INTO_A,
-			LD_A_INTO_R,
-			LD_R_INTO_A,
 			LD_I_INTO_WZH,
 
 			READPC,
@@ -211,15 +196,7 @@ namespace xprocessors::cpu
 			IOWRITE,
 			FILLPCL,
 			FILLPCH,
-			CPAWRH,
 
-			OUTA,
-			OUTB,
-			OUTC,
-			OUTD,
-			OUTE,
-			OUTH,
-			OUTL,
 			READIO,
 
 			LD_B_INTO_A,
@@ -702,10 +679,10 @@ namespace xprocessors::cpu
 		void bit(const uint8_t, const uint8_t);
 	};
 
-	class LR35902dbg : public LR35902
+	class sm83dbg : public sm83
 	{
 	public:
-		LR35902dbg();
+		sm83dbg();
 		void setMemoryAccessor(std::function<uint8_t(const uint16_t)>);
 
 		[[nodiscard]] bool isrunning();

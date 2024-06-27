@@ -141,8 +141,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\cpu\cpu.cpp" />
+    <ClCompile Include="src\cpu\sm83\sm83.cpp" />
+    <ClCompile Include="src\cpu\sm83\sm83opcodes.cpp" />
+    <ClCompile Include="src\cpu\sm83\sm83debugging.cpp" />
+    <ClCompile Include="src\cpu\sm83\sm83debuggingopcodes.cpp" />
     <ClCompile Include="src\cpu\z80family\i8080oldsolution.cpp" />
-    <ClCompile Include="src\cpu\z80family\lr35902.cpp" />
+    <ClCompile Include="src\cpu\z80family\lr35902oldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80oldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80opcodes_cboldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80opcodes_edoldsolution.cpp" />
@@ -153,40 +157,32 @@
     <ClCompile Include="src\cpu\z80\z80opcodes.cpp" />
     <ClCompile Include="src\cpu\z80\z80opcodes_dd.cpp" />
     <ClCompile Include="src\cpu\z80\z80opcodes_ed.cpp" />
-    <ClCompile Include="src\experimental\i8080.cpp" />
-    <ClCompile Include="src\experimental\i8080debugging.cpp" />
-    <ClCompile Include="src\experimental\i8080debuggingopcodes.cpp" />
-    <ClCompile Include="src\experimental\i8080opcodes.cpp" />
-    <ClCompile Include="tests\cpu_tests.cpp" />
-    <ClCompile Include="tests\i8080ng_tests.cpp" />
+    <ClCompile Include="src\cpu\i8080\i8080.cpp" />
+    <ClCompile Include="src\cpu\i8080\i8080debugging.cpp" />
+    <ClCompile Include="src\cpu\i8080\i8080debuggingopcodes.cpp" />
+    <ClCompile Include="src\cpu\i8080\i8080opcodes.cpp" />
     <ClCompile Include="tests\i8080_tests.cpp" />
-    <ClCompile Include="tests\lr35902_tests.cpp" />
-    <ClCompile Include="tests\z80ng_tests.cpp" />
+    <ClCompile Include="tests\sm83ng_tests.cpp" />
     <ClCompile Include="tests\z80_tests.cpp" />
     <ClCompile Include="xos-processors.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\i8080.h" />
+    <ClInclude Include="include\sm83.h" />
     <ClInclude Include="include\xprocessors.h" />
     <ClInclude Include="include\cpu.h" />
     <ClInclude Include="include\mb14241.h" />
     <ClInclude Include="src\cpu\z80family\z80oldsolution.h" />
     <ClInclude Include="include\z80.h" />
-    <ClInclude Include="src\cpu\z80\z80debugging.h" />
     <ClInclude Include="src\registry.h" />
     <ClInclude Include="src\cpu\z80family\cpus.h" />
     <ClInclude Include="src\cpu\z80family\i8080oldsolution.h" />
-    <ClInclude Include="src\cpu\z80family\lr35902.h" />
+    <ClInclude Include="src\cpu\z80family\lr35902oldsolution.h" />
     <ClInclude Include="src\cpu\z80family\opcodes.h" />
     <ClInclude Include="src\cpu\z80family\opcodes_cb.h" />
     <ClInclude Include="src\cpu\z80family\states.h" />
     <ClInclude Include="tests\cpu_tests.h" />
     <ClInclude Include="tests\data\z80\perfs.h" />
-    <ClInclude Include="tests\i8080ng_tests.h" />
-    <ClInclude Include="tests\i8080_tests.h" />
-    <ClInclude Include="tests\lr35902_tests.h" />
-    <ClInclude Include="tests\z80ng_tests.h" />
-    <ClInclude Include="tests\z80_tests.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

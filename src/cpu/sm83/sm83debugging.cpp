@@ -1,4 +1,4 @@
-#include "lr35902.h"
+#include "sm83.h"
 #include <sstream>
 #include <iomanip>
 
@@ -9,17 +9,17 @@ using namespace xprocessors;
 
 namespace xprocessors::cpu
 {
-	LR35902dbg::LR35902dbg() :
-		LR35902{ }
+	sm83dbg::sm83dbg() :
+		sm83{ }
 	{
 
 	}
-	void LR35902dbg::setMemoryAccessor(std::function<uint8_t(const uint16_t)> fn)
+	void sm83dbg::setMemoryAccessor(std::function<uint8_t(const uint16_t)> fn)
 	{
 		_memoryfn = fn;
 	}
 
-	bool LR35902dbg::isrunning()
+	bool sm83dbg::isrunning()
 	{
 		if (_running)
 		{
@@ -42,7 +42,7 @@ namespace xprocessors::cpu
 		return _running;
 	}
 
-	string LR35902dbg::opcode() const
+	string sm83dbg::opcode() const
 	{
 		if (current_step==FETCH)
 		{
