@@ -47,6 +47,7 @@ namespace xprocessors::cpu
 		void setReady() { _pins |= PIN_READY; }
 		void resetReady() { _pins &= ~PIN_READY; }
 		void sendInterrupt() { _pins |= PIN_INT; }
+		void ackInterrupt() { _pins &= ~PIN_INT; }
 
 	protected:
 		uint16_t _addressbus;
