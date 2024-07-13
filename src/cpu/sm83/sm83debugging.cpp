@@ -25,17 +25,20 @@ namespace xprocessors::cpu
 		{
 			if (_step)
 			{
-				if (_step1)
+				if (_step1 == 0)
 				{
-					if (current_step == FETCH)
+					if (pins & PIN_M1)
 					{
-						_running = false;
-						_step1 = false;
+						_step1 = 1;
 					}
 				}
 				else
 				{
-					_step1 = true;
+					if (!(pins & PIN_M1))
+					{
+						_running = false;
+						_step1 = 0;
+					}
 				}
 			}
 		}
@@ -44,9 +47,9 @@ namespace xprocessors::cpu
 
 	string sm83dbg::opcode() const
 	{
-		if (current_step==FETCH)
+		if ((_step1==0)&&(!(_running)))
 		{
-			uint16_t address = pc;
+			uint16_t address = pc - 1;
 			std::stringstream disasm;
 			disasm << std::hex << pc << " - " << disassembly(address);
 			disasm << " - A:" << std::setw(2) << std::setfill('0') << std::hex << (int)a;
@@ -55,6 +58,9 @@ namespace xprocessors::cpu
 			disasm << " C:" << std::setw(2) << std::setfill('0') << std::hex << (int)c;
 			disasm << " D:" << std::setw(2) << std::setfill('0') << std::hex << (int)d;
 			disasm << " E:" << std::setw(2) << std::setfill('0') << std::hex << (int)e;
+			disasm << " HL:" << std::setw(2) << std::setfill('0') << std::hex << (int)hl;
+			disasm << " SP:" << std::setw(2) << std::setfill('0') << std::hex << (int)sp;
+			disasm << " PC:" << std::setw(2) << std::setfill('0') << std::hex << (int)(pc - 1);
 			return disasm.str();
 		}
 		return "";

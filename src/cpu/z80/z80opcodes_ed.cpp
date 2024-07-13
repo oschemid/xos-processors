@@ -85,7 +85,7 @@ const std::vector<Z80::opcode_steps> Z80::opcodes_timing_ed[] =
 	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, LD_DB_INTO_WZH, WRITEC, WRITE, INC_WZ, WRITEB, WRITE, NOP, FETCH }, // LD (nn),BC
 	{ NEG, FETCH }, // NEG
 	{ },
-	{ },
+	{ IM0, FETCH }, // IM 0
 	{ LD_A_INTO_I, NOP, FETCH }, // LD I,A
 	{ },
 	{ LD_BC_INTO_WZ, OUTC, IOWRITE, NOP, FETCH }, // OUT (C),C

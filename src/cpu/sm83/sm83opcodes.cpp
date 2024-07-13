@@ -1,591 +1,559 @@
 #include "sm83.h"
 
-
 using namespace xprocessors::cpu;
 
+#define FETCH { addressbus_operation::PUSH_PC, databus_operation::POP_IR, idu_operation::INC_PC }
+#define FETCH_ALU(aluop) { addressbus_operation::PUSH_PC, databus_operation::POP_IR, idu_operation::INC_PC, alu_operation::aluop }
+#define FETCH_MISC(miscop) { addressbus_operation::PUSH_PC, databus_operation::POP_IR, idu_operation::INC_PC, alu_operation::NONE, misc_operation::miscop }
+#define READZ { addressbus_operation::PUSH_PC, databus_operation::POP_Z, idu_operation::INC_PC }
+#define READZ_MISC(miscop) { addressbus_operation::PUSH_PC, databus_operation::POP_Z, idu_operation::INC_PC, alu_operation::NONE, misc_operation::miscop }
+#define READW { addressbus_operation::PUSH_PC, databus_operation::POP_W, idu_operation::INC_PC }
+#define READW_MISC(miscop) { addressbus_operation::PUSH_PC, databus_operation::POP_W, idu_operation::INC_PC, alu_operation::NONE, misc_operation::miscop }
+#define OP_HL(aluop) { {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::aluop}, {addressbus_operation::PUSH_HL, databus_operation::PUSH_Z}, FETCH }
 
-const std::vector<sm83::opcode_steps> sm83::opcodes_timing[] =
-{
-	// 0x00 - 0x0F
-	{ NOP, FETCH }, // NOP
-	{ NOP, READPC, WAIT, LD_DB_INTO_C, READPC, WAIT, LD_DB_INTO_B, FETCH }, // LD BC,nn
-	{ LD_BC_INTO_WZ, WRITE_A, WRITE, NOP, FETCH }, // LD (BC),A
-	{ NOP, INC_BC, NOP, FETCH }, // INC BC
-	{ INC_B, FETCH }, // INC B
-	{ DEC_B, FETCH }, // DEC B
-	{ NOP, READPC, WAIT, LD_DB_INTO_B, FETCH }, // LD B,n
-	{ RLCA, FETCH }, // RLCA
-	{ }, // LD (nn), SP
-	{ LD_BC_INTO_WZ, NOP, NOP, NOP, NOP, NOP, NOP, ADD_WZ_TO_HL, FETCH }, // ADD HL,BC
-	{ LD_BC_INTO_WZ, READ, WAIT, LD_DB_INTO_A, FETCH }, // LD A,(BC)
-	{ NOP, DEC_BC, NOP, FETCH }, // DEC BC
-	{ INC_C, FETCH }, // INC C
-	{ DEC_C, FETCH }, // DEC C
-	{ NOP, READPC, WAIT, LD_DB_INTO_C, FETCH }, // LD C,n
-	{ RRCA, FETCH }, // RRCA
+const std::vector<sm83::step> sm83::opcodes_steps[] = {
+	{ FETCH }, // NOP
+	{ READZ, READW, FETCH_MISC(WZ_TO_BC) }, // LD BC,nn
+	{ { addressbus_operation::PUSH_BC, databus_operation::PUSH_A }, FETCH }, // LD (BC),A
+	{ {.idu = idu_operation::INC_BC }, FETCH }, // INC BC
+	{ FETCH_ALU(INC_B) }, // INC B
+	{ FETCH_ALU(DEC_B) }, // DEC B
+	{ READZ, FETCH_ALU(Z_TO_B) }, // LD B,n
+	{ FETCH_ALU(RLCA) }, // RLCA
+	{ READZ, READW, { addressbus_operation::PUSH_WZ, databus_operation::PUSH_SPL, idu_operation::INC_WZ },  { addressbus_operation::PUSH_WZ, databus_operation::PUSH_SPH }, FETCH }, // LD (nn),SP
+	{ { .alu = alu_operation::ADD_C_TO_L }, FETCH_ALU(ADD_B_TO_H) }, // ADD HL,BC
+	{ { addressbus_operation::PUSH_BC, databus_operation::POP_Z }, FETCH_ALU(Z_TO_A)}, // LD A,(BC)
+	{ {.idu = idu_operation::DEC_BC }, FETCH }, // DEC BC
+	{ FETCH_ALU(INC_C) }, // INC C
+	{ FETCH_ALU(DEC_C) }, // DEC C
+	{ READZ, FETCH_ALU(Z_TO_C) }, // LD C,n
+	{ FETCH_ALU(RRCA) }, // RRCA
 
-	// 0x10 - 0x1F
-	{ HALT, FETCH }, // STOP 0
-	{ NOP, READPC, WAIT, LD_DB_INTO_E, READPC, WAIT, LD_DB_INTO_D, FETCH }, // LD DE,nn
-	{ LD_DE_INTO_WZ, WRITE_A, WRITE, NOP, FETCH }, // LD (DE),A
-	{ NOP, INC_DE, NOP, FETCH }, // INC DE
-	{ INC_D, FETCH }, // INC D
-	{ DEC_D, FETCH }, // DEC D
-	{ NOP, READPC, WAIT, LD_DB_INTO_D, FETCH }, // LD D,n
-	{ RLA, FETCH }, // RLA
-	{ NOP, READPC, WAIT, NOP, NOP, NOP, NOP, NOP, JR, FETCH }, // JR n
-	{ LD_DE_INTO_WZ, NOP, NOP, NOP, NOP, NOP, NOP, ADD_WZ_TO_HL, FETCH }, // ADD HL,DE
-	{ LD_DE_INTO_WZ, READ, WAIT, LD_DB_INTO_A, FETCH }, // LD A,(DE)
-	{ NOP, DEC_DE, NOP, FETCH }, // DEC DE
-	{ INC_E, FETCH }, // INC E
-	{ DEC_E, FETCH }, // DEC E
-	{ NOP, READPC, WAIT, LD_DB_INTO_E, FETCH }, // LD E,n
-	{ RRA, FETCH }, // RRA
+	{ READZ, FETCH }, // STOP 0
+	{ READZ, READW, FETCH_MISC(WZ_TO_DE) }, // LD DE,nn
+	{ { addressbus_operation::PUSH_DE, databus_operation::PUSH_A }, FETCH }, // LD (DE),A
+	{ {.idu = idu_operation::INC_DE }, FETCH }, // INC DE
+	{ FETCH_ALU(INC_D) }, // INC D
+	{ FETCH_ALU(DEC_D) }, // DEC D
+	{ READZ, FETCH_ALU(Z_TO_D) }, // LD D,n
+	{ FETCH_ALU(RLA) }, // RLA
+	{ READZ, { .idu=idu_operation::ADD_Z_TO_PC }, FETCH }, // JR n
+	{ {.alu = alu_operation::ADD_E_TO_L }, FETCH_ALU(ADD_D_TO_H) }, // ADD HL,DE
+	{ { addressbus_operation::PUSH_DE, databus_operation::POP_Z }, FETCH_ALU(Z_TO_A)}, // LD A,(DE)
+	{ {.idu = idu_operation::DEC_DE }, FETCH }, // DEC DE
+	{ FETCH_ALU(INC_E) }, // INC E
+	{ FETCH_ALU(DEC_E) }, // DEC E
+	{ READZ, FETCH_ALU(Z_TO_E) }, // LD E,n
+	{ FETCH_ALU(RRA) }, // RRA
 
-	// 0x20 - 0x2F
-	{ NOP, READPC, WAIT, STOPZ, NOP, NOP, NOP, NOP, JR, FETCH }, // JR NZ,n
-	{ NOP, READPC, WAIT, LD_DB_INTO_L, READPC, WAIT, LD_DB_INTO_H, FETCH }, // LD HL,nn
-	{ LD_HL_INTO_WZ, WRITE_A, WRITE, NOP, INC_HL, FETCH }, // LD (HL+),A
-	{ NOP, INC_HL, NOP, FETCH }, // INC HL
-	{ INC_H, FETCH }, // INC H
-	{ DEC_H, FETCH }, // DEC H
-	{ NOP, READPC, WAIT, LD_DB_INTO_H, FETCH }, // LD H,n
-	{ DAA, FETCH }, // DAA
-	{ NOP, READPC, WAIT, STOPNZ, NOP, NOP, NOP, NOP, JR, FETCH }, // JR Z,n
-	{ LD_HL_INTO_WZ, NOP, NOP, NOP, NOP, NOP, NOP, ADD_WZ_TO_HL, FETCH }, // ADD HL,HL
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_A, INC_HL, FETCH }, // LD A,(HL+)
-	{ NOP, DEC_HL, NOP, FETCH }, // DEC HL
-	{ INC_L, FETCH }, // INC L
-	{ DEC_L, FETCH }, // DEC L
-	{ NOP, READPC, WAIT, LD_DB_INTO_L, FETCH }, // LD L,n
-	{ CPL, FETCH }, // CPL
+	{ READZ_MISC(CHECK_NZ), {.idu = idu_operation::ADD_Z_TO_PC}, FETCH}, // JR NZ,n
+	{ READZ, READW, FETCH_MISC(WZ_TO_HL) }, // LD HL,nn
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_A, idu_operation::INC_HL }, FETCH }, // LD (HL+),A
+	{ {.idu = idu_operation::INC_HL }, FETCH }, // INC HL
+	{ FETCH_ALU(INC_H) }, // INC H
+	{ FETCH_ALU(DEC_H) }, // DEC H
+	{ READZ, FETCH_ALU(Z_TO_H) }, // LD H,n
+	{ FETCH_ALU(DAA) }, // DAA
+	{ READZ_MISC(CHECK_Z), {.idu = idu_operation::ADD_Z_TO_PC}, FETCH}, // JR Z,n
+	{ {.alu = alu_operation::ADD_L_TO_L }, FETCH_ALU(ADD_H_TO_H) }, // ADD HL,HL
+	{ { addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::INC_HL }, FETCH_ALU(Z_TO_A) }, // LD A,(HL+)
+	{ {.idu = idu_operation::DEC_HL }, FETCH }, // DEC HL
+	{ FETCH_ALU(INC_L) }, // INC L
+	{ FETCH_ALU(DEC_L) }, // DEC L
+	{ READZ, FETCH_ALU(Z_TO_L) }, // LD L,n
+	{ FETCH_ALU(CPL) }, // CPL
 
-	// 0x30 - 0x3F
-	{ NOP, READPC, WAIT, STOPC, NOP, NOP, NOP, NOP, JR, FETCH }, // JR NC,n
-	{ NOP, READPC, WAIT, LD_DB_INTO_SPL, READPC, WAIT, LD_DB_INTO_SPH, FETCH }, // LD sp,nn
-	{ LD_HL_INTO_WZ, WRITE_A, WRITE, NOP, DEC_HL, FETCH }, // LD (HL-),A
-	{ NOP, INCSP, NOP, FETCH }, // INC SP
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, INC_DB, WRITE_DB, WRITE, NOP, FETCH }, // INC (HL)
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, DEC_DB, WRITE_DB, WRITE, NOP, FETCH }, // DEC (HL)
-	{ LD_HL_INTO_WZ, READPC, WAIT, NOP, WRITE_DB, WRITE, NOP, FETCH }, // LD (HL),n
-	{ SCF, FETCH }, // SCF
-	{ NOP, READPC, WAIT, STOPNC, NOP, NOP, NOP, NOP, JR, FETCH }, // JR C,n
-	{ LD_SP_INTO_WZ, NOP, NOP, NOP, NOP, NOP, NOP, ADD_WZ_TO_HL, FETCH }, // ADD HL,SP
-	{  }, // LD A,(HL-)
-	{ NOP, DECSP, NOP, FETCH }, // DEC SP
-	{ INC_A, FETCH }, // INC A
-	{ DEC_A, FETCH }, // DEC A
-	{ NOP, READPC, WAIT, LD_DB_INTO_A, FETCH }, // LD A,n
-	{ CCF, FETCH }, // CCF
+	{ READZ_MISC(CHECK_NC), {.idu = idu_operation::ADD_Z_TO_PC}, FETCH }, // JR NC,n
+	{ READZ, READW, FETCH_MISC(WZ_TO_SP) }, // LD SP,nn
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_A, idu_operation::DEC_HL }, FETCH }, // LD (HL-),A
+	{ {.idu = idu_operation::INC_SP }, FETCH }, // INC SP
+	OP_HL(INC_Z), // INC (HL)
+	OP_HL(DEC_Z), // DEC (HL)
+	{ READZ, {addressbus_operation::PUSH_HL, databus_operation::PUSH_Z }, FETCH }, // LD (HL),n
+	{ FETCH_ALU(SCF) }, // SCF
+	{ READZ_MISC(CHECK_C), {.idu = idu_operation::ADD_Z_TO_PC}, FETCH }, // JR C,n
+	{ {.alu = alu_operation::ADD_SPL_TO_L }, FETCH_ALU(ADD_SPH_TO_H) }, // ADD HL,SP
+	{ { addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::DEC_HL }, FETCH_ALU(Z_TO_A) }, // LD A,(HL-)
+	{ {.idu = idu_operation::DEC_SP }, FETCH }, // DEC SP
+	{ FETCH_ALU(INC_A) }, // INC A
+	{ FETCH_ALU(DEC_A) }, // DEC A
+	{ READZ, FETCH_ALU(Z_TO_A) }, // LD A,n
+	{ FETCH_ALU(CCF) }, // CCF
 
-	// 0x40 - 0x4F
-	{ NOP, FETCH }, // LD B,B
-	{ LD_C_INTO_B, FETCH }, // LD B,C
-	{ LD_D_INTO_B, FETCH }, // LD B,D
-	{ LD_E_INTO_B, FETCH }, // LD B,E
-	{ LD_H_INTO_B, FETCH }, // LD B,H
-	{ LD_L_INTO_B, FETCH }, // LD B,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_B, FETCH }, // LD B,(HL)
-	{ LD_A_INTO_B, FETCH }, // LD B,A
-	{ LD_B_INTO_C, FETCH }, // LD C,B
-	{ NOP, FETCH }, // LD C,C
-	{ LD_D_INTO_C, FETCH }, // LD C,D
-	{ LD_E_INTO_C, FETCH }, // LD C,E
-	{ LD_H_INTO_C, FETCH }, // LD C,H
-	{ LD_L_INTO_C, FETCH }, // LD C,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_C, FETCH }, // LD C,(HL)
-	{ LD_A_INTO_C, FETCH }, // LD C,A
+	{ FETCH }, // LD B,B
+	{ FETCH_ALU(C_TO_B) }, // LD B,C
+	{ FETCH_ALU(D_TO_B) }, // LD B,D
+	{ FETCH_ALU(E_TO_B) }, // LD B,E
+	{ FETCH_ALU(H_TO_B) }, // LD B,H
+	{ FETCH_ALU(L_TO_B) }, // LD B,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_B) }, // LD B,(HL)
+	{ FETCH_ALU(A_TO_B) }, // LD B,A
+	{ FETCH_ALU(B_TO_C) }, // LD C,B
+	{ FETCH }, // LD C,C
+	{ FETCH_ALU(D_TO_C) }, // LD C,D
+	{ FETCH_ALU(E_TO_C) }, // LD C,E
+	{ FETCH_ALU(H_TO_C) }, // LD C,H
+	{ FETCH_ALU(L_TO_C) }, // LD C,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_C)}, // LD C,(HL)
+	{ FETCH_ALU(A_TO_C) }, // LD C,A
 
-	// 0x50 - 0x5F
-	{ LD_B_INTO_D, FETCH }, // LD D,B
-	{ LD_C_INTO_D, FETCH }, // LD D,C
-	{ NOP, FETCH }, // LD D,D
-	{ LD_E_INTO_D, FETCH }, // LD D,E
-	{ LD_H_INTO_D, FETCH }, // LD D,H
-	{ LD_L_INTO_D, FETCH }, // LD D,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_D, FETCH }, // LD D,(HL)
-	{ LD_A_INTO_D, FETCH }, // LD D,A
-	{ LD_B_INTO_E, FETCH }, // LD E,B
-	{ LD_C_INTO_E, FETCH }, // LD E,C
-	{ LD_D_INTO_E, FETCH }, // LD E,D
-	{ NOP, FETCH }, // LD E,E
-	{ LD_H_INTO_E, FETCH }, // LD E,H
-	{ LD_L_INTO_E, FETCH }, // LD E,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_E, FETCH }, // LD E,(HL)
-	{ LD_A_INTO_E, FETCH }, // LD E,A
+	{ FETCH_ALU(B_TO_D) }, // LD D,B
+	{ FETCH_ALU(C_TO_D) }, // LD D,C
+	{ FETCH }, // LD D,D
+	{ FETCH_ALU(E_TO_D) }, // LD D,E
+	{ FETCH_ALU(H_TO_D) }, // LD D,H
+	{ FETCH_ALU(L_TO_D) }, // LD D,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_D)}, // LD D,(HL)
+	{ FETCH_ALU(A_TO_D) }, // LD D,A
+	{ FETCH_ALU(B_TO_E) }, // LD E,B
+	{ FETCH_ALU(C_TO_E) }, // LD E,C
+	{ FETCH_ALU(D_TO_E) }, // LD E,D
+	{ FETCH }, // LD E,E
+	{ FETCH_ALU(H_TO_E) }, // LD E,H
+	{ FETCH_ALU(L_TO_E) }, // LD E,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_E)}, // LD E,(HL)
+	{ FETCH_ALU(A_TO_E) }, // LD E,A
 
-	// 0x60 - 0x6F
-	{ LD_B_INTO_H, FETCH }, // LD H,B
-	{ LD_C_INTO_H, FETCH }, // LD H,C
-	{ LD_D_INTO_H, FETCH }, // LD H,D
-	{ LD_E_INTO_H, FETCH }, // LD H,E
-	{ NOP, FETCH }, // LD H,H
-	{ LD_L_INTO_H, FETCH }, // LD H,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_H, FETCH }, // LD H,(HL)
-	{ LD_A_INTO_H, FETCH }, // LD H,A
-	{ LD_B_INTO_L, FETCH }, // LD L,B
-	{ LD_C_INTO_L, FETCH }, // LD L,C
-	{ LD_D_INTO_L, FETCH }, // LD L,D
-	{ LD_E_INTO_L, FETCH }, // LD L,E
-	{ LD_H_INTO_L, FETCH }, // LD L,H
-	{ NOP, FETCH }, // LD L,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_L, FETCH }, // LD L,(HL)
-	{ LD_A_INTO_L, FETCH }, // LD L,A
+	{ FETCH_ALU(B_TO_H) }, // LD H,B
+	{ FETCH_ALU(C_TO_H) }, // LD H,C
+	{ FETCH_ALU(D_TO_H) }, // LD H,D
+	{ FETCH_ALU(E_TO_H) }, // LD H,E
+	{ FETCH }, // LD H,H
+	{ FETCH_ALU(L_TO_H) }, // LD H,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_H) }, // LD H,(HL)
+	{ FETCH_ALU(A_TO_H) }, // LD H,A
+	{ FETCH_ALU(B_TO_L) }, // LD L,B
+	{ FETCH_ALU(C_TO_L) }, // LD L,C
+	{ FETCH_ALU(D_TO_L) }, // LD L,D
+	{ FETCH_ALU(E_TO_L) }, // LD L,E
+	{ FETCH_ALU(H_TO_L) }, // LD L,H
+	{ FETCH }, // LD L,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_L) }, // LD L,(HL)
+	{ FETCH_ALU(A_TO_L) }, // LD L,A
 
-	// 0x70 - 0x7F
-	{ LD_HL_INTO_WZ, WRITEB, WRITE, NOP, FETCH }, // LD (HL),B
-	{ LD_HL_INTO_WZ, WRITEC, WRITE, NOP, FETCH }, // LD (HL),C
-	{ LD_HL_INTO_WZ, WRITED, WRITE, NOP, FETCH }, // LD (HL),D
-	{ LD_HL_INTO_WZ, WRITEE, WRITE, NOP, FETCH }, // LD (HL),E
-	{ LD_HL_INTO_WZ, WRITEH, WRITE, NOP, FETCH }, // LD (HL),H
-	{ LD_HL_INTO_WZ, WRITEL, WRITE, NOP, FETCH }, // LD (HL),L
-	{ HALT, FETCH }, // HALT
-	{ LD_HL_INTO_WZ, WRITE_A, WRITE, NOP, FETCH }, // LD (HL),A
-	{ LD_B_INTO_A, FETCH }, // LD L,B
-	{ LD_C_INTO_A, FETCH }, // LD L,C
-	{ LD_D_INTO_A, FETCH }, // LD L,D
-	{ LD_E_INTO_A, FETCH }, // LD L,E
-	{ LD_H_INTO_A, FETCH }, // LD L,H
-	{ LD_L_INTO_A, FETCH }, // LD L,L
-	{ LD_HL_INTO_WZ, READ, WAIT, LD_DB_INTO_A, FETCH }, // LD A,(HL)
-	{ NOP, FETCH }, // LD A,A
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_B}, FETCH }, // LD (HL),B
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_C}, FETCH }, // LD (HL),C
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_D}, FETCH }, // LD (HL),D
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_E}, FETCH }, // LD (HL),E
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_H}, FETCH }, // LD (HL),H
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_L}, FETCH }, // LD (HL),L
+	{ FETCH_MISC(HALT) }, // HALT
+	{ {addressbus_operation::PUSH_HL, databus_operation::PUSH_A}, FETCH }, // LD (HL),A
+	{ FETCH_ALU(B_TO_A) }, // LD A,B
+	{ FETCH_ALU(C_TO_A) }, // LD A,C
+	{ FETCH_ALU(D_TO_A) }, // LD A,D
+	{ FETCH_ALU(E_TO_A) }, // LD A,E
+	{ FETCH_ALU(H_TO_A) }, // LD A,H
+	{ FETCH_ALU(L_TO_A) }, // LD A,L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(Z_TO_A) }, // LD A,(HL)
+	{ FETCH }, // LD A,A
 
-	// 0x80 - 0x8F
-	{ ADD_B_TO_A, FETCH }, // ADD B
-	{ ADD_C_TO_A, FETCH }, // ADD C
-	{ ADD_D_TO_A, FETCH }, // ADD D
-	{ ADD_E_TO_A, FETCH }, // ADD E
-	{ ADD_H_TO_A, FETCH }, // ADD H
-	{ ADD_L_TO_A, FETCH }, // ADD L
-	{ LD_HL_INTO_WZ, READ, WAIT, ADD_DB_TO_A, FETCH }, // ADD (HL)
-	{ ADD_A_TO_A, FETCH }, // ADD A
-	{ ADC_B_TO_A, FETCH }, // ADC B
-	{ ADC_C_TO_A, FETCH }, // ADC C
-	{ ADC_D_TO_A, FETCH }, // ADC D
-	{ ADC_E_TO_A, FETCH }, // ADC E
-	{ ADC_H_TO_A, FETCH }, // ADC H
-	{ ADC_L_TO_A, FETCH }, // ADC L
-	{ LD_HL_INTO_WZ, READ, WAIT, ADC_DB_TO_A, FETCH }, // ADC (HL)
-	{ ADC_A_TO_A, FETCH }, // ADC A
+	{ FETCH_ALU(ADD_B_TO_A) }, // ADD B
+	{ FETCH_ALU(ADD_C_TO_A) }, // ADD C
+	{ FETCH_ALU(ADD_D_TO_A) }, // ADD D
+	{ FETCH_ALU(ADD_E_TO_A) }, // ADD E
+	{ FETCH_ALU(ADD_H_TO_A) }, // ADD H
+	{ FETCH_ALU(ADD_L_TO_A) }, // ADD L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(ADD_Z_TO_A) }, // ADD (HL)
+	{ FETCH_ALU(ADD_A_TO_A) }, // ADD A
+	{ FETCH_ALU(ADC_B_TO_A) }, // ADC B
+	{ FETCH_ALU(ADC_C_TO_A) }, // ADC C
+	{ FETCH_ALU(ADC_D_TO_A) }, // ADC D
+	{ FETCH_ALU(ADC_E_TO_A) }, // ADC E
+	{ FETCH_ALU(ADC_H_TO_A) }, // ADC H
+	{ FETCH_ALU(ADC_L_TO_A) }, // ADC L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(ADC_Z_TO_A) }, // ADC (HL)
+	{ FETCH_ALU(ADC_A_TO_A) }, // ADC A
 
-	// 0x90 - 0x9F
-	{ SUB_B_TO_A, FETCH }, // SUB B
-	{ SUB_C_TO_A, FETCH }, // SUB C
-	{ SUB_D_TO_A, FETCH }, // SUB D
-	{ SUB_E_TO_A, FETCH }, // SUB E
-	{ SUB_H_TO_A, FETCH }, // SUB H
-	{ SUB_L_TO_A, FETCH }, // SUB L
-	{ LD_HL_INTO_WZ, READ, WAIT, SUB_DB_TO_A, FETCH }, // SUB (HL)
-	{ SUB_A_TO_A, FETCH }, // SUB A
-	{ SBC_B_TO_A, FETCH }, // SBC B
-	{ SBC_C_TO_A, FETCH }, // SBC C
-	{ SBC_D_TO_A, FETCH }, // SBC D
-	{ SBC_E_TO_A, FETCH }, // SBC E
-	{ SBC_H_TO_A, FETCH }, // SBC H
-	{ SBC_L_TO_A, FETCH }, // SBC L
-	{ LD_HL_INTO_WZ, READ, WAIT, SBC_DB_TO_A, FETCH }, // SBC (HL)
-	{ SBC_A_TO_A, FETCH }, // SBC A
+	{ FETCH_ALU(SUB_B_TO_A) }, // SUB B
+	{ FETCH_ALU(SUB_C_TO_A) }, // SUB C
+	{ FETCH_ALU(SUB_D_TO_A) }, // SUB D
+	{ FETCH_ALU(SUB_E_TO_A) }, // SUB E
+	{ FETCH_ALU(SUB_H_TO_A) }, // SUB H
+	{ FETCH_ALU(SUB_L_TO_A) }, // SUB L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(SUB_Z_TO_A) }, // SUB (HL)
+	{ FETCH_ALU(SUB_A_TO_A) }, // SUB A
+	{ FETCH_ALU(SBC_B_TO_A) }, // SBC B
+	{ FETCH_ALU(SBC_C_TO_A) }, // SBC C
+	{ FETCH_ALU(SBC_D_TO_A) }, // SBC D
+	{ FETCH_ALU(SBC_E_TO_A) }, // SBC E
+	{ FETCH_ALU(SBC_H_TO_A) }, // SBC H
+	{ FETCH_ALU(SBC_L_TO_A) }, // SBC L
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z}, FETCH_ALU(SBC_Z_TO_A) }, // SBC (HL)
+	{ FETCH_ALU(SBC_A_TO_A) }, // SBC A
 
-	// 0xA0 - 0xAF
-	{ AND_B, FETCH }, // AND B
-	{ AND_C, FETCH }, // AND C
-	{ AND_D, FETCH }, // AND D
-	{ AND_E, FETCH }, // AND E
-	{ AND_H, FETCH }, // AND H
-	{ AND_L, FETCH }, // AND L
-	{ LD_HL_INTO_WZ, READ, WAIT, AND_DB, FETCH }, // AND (HL)
-	{ AND_A, FETCH }, // AND A
-	{ XOR_B, FETCH }, // XOR B
-	{ XOR_C, FETCH }, // XOR C
-	{ XOR_D, FETCH }, // XOR D
-	{ XOR_E, FETCH }, // XOR E
-	{ XOR_H, FETCH }, // XOR H
-	{ XOR_L, FETCH }, // XOR L
-	{ LD_HL_INTO_WZ, READ, WAIT, XOR_DB, FETCH }, // XOR (HL)
-	{ XOR_A, FETCH }, // XOR A
+	{ FETCH_ALU(AND_B) }, // AND B
+	{ FETCH_ALU(AND_C) }, // AND C
+	{ FETCH_ALU(AND_D) }, // AND D
+	{ FETCH_ALU(AND_E) }, // AND E
+	{ FETCH_ALU(AND_H) }, // AND H
+	{ FETCH_ALU(AND_L) }, // AND L
+	{ { addressbus_operation::PUSH_HL, databus_operation::POP_Z }, FETCH_ALU(AND_Z) }, // AND (HL)
+	{ FETCH_ALU(AND_A) }, // AND A
+	{ FETCH_ALU(XOR_B) }, // XOR B
+	{ FETCH_ALU(XOR_C) }, // XOR C
+	{ FETCH_ALU(XOR_D) }, // XOR D
+	{ FETCH_ALU(XOR_E) }, // XOR E
+	{ FETCH_ALU(XOR_H) }, // XOR H
+	{ FETCH_ALU(XOR_L) }, // XOR L
+	{ { addressbus_operation::PUSH_HL, databus_operation::POP_Z }, FETCH_ALU(XOR_Z) }, // XOR (HL)
+	{ FETCH_ALU(XOR_A) }, // XOR A
 
-	// 0xB0 - 0xBF
-	{ OR_B, FETCH }, // OR B
-	{ OR_C, FETCH }, // OR C
-	{ OR_D, FETCH }, // OR D
-	{ OR_E, FETCH }, // OR E
-	{ OR_H, FETCH }, // OR H
-	{ OR_L, FETCH }, // OR L
-	{ LD_HL_INTO_WZ, READ, WAIT, OR_DB, FETCH }, // OR (HL)
-	{ OR_A, FETCH }, // OR A
-	{ CP_B, FETCH }, // CP B
-	{ CP_C, FETCH }, // CP C
-	{ CP_D, FETCH }, // CP D
-	{ CP_E, FETCH }, // CP E
-	{ CP_H, FETCH }, // CP H
-	{ CP_L, FETCH }, // CP L
-	{ LD_HL_INTO_WZ, READ, WAIT, CP_DB, FETCH }, // CP (HL)
-	{ CP_A, FETCH }, // CP A
+	{ FETCH_ALU(OR_B) }, // OR B
+	{ FETCH_ALU(OR_C) }, // OR C
+	{ FETCH_ALU(OR_D) }, // OR D
+	{ FETCH_ALU(OR_E) }, // OR E
+	{ FETCH_ALU(OR_H) }, // OR H
+	{ FETCH_ALU(OR_L) }, // OR L
+	{ { addressbus_operation::PUSH_HL, databus_operation::POP_Z }, FETCH_ALU(OR_Z) }, // OR (HL)
+	{ FETCH_ALU(OR_A) }, // OR A
+	{ FETCH_ALU(CP_B) }, // CP B
+	{ FETCH_ALU(CP_C) }, // CP C
+	{ FETCH_ALU(CP_D) }, // CP D
+	{ FETCH_ALU(CP_E) }, // CP E
+	{ FETCH_ALU(CP_H) }, // CP H
+	{ FETCH_ALU(CP_L) }, // CP L
+	{ { addressbus_operation::PUSH_HL, databus_operation::POP_Z }, FETCH_ALU(CP_Z) }, // CP (HL)
+	{ FETCH_ALU(CP_A) }, // CP A
 
-	// 0xC0 - 0xCF
-	{ NOP, STOPZ, READSP, WAIT, FILLPCL, READSP, WAIT, FILLPCH, FETCH }, // RET NZ
-	{ NOP, READSP, WAIT, LD_DB_INTO_C, READSP, WAIT, LD_DB_INTO_B, FETCH }, // POP BC
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, JPNZ, FETCH }, // JP NZ,nn
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, JP, FETCH }, // JP nn
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, STOPZ, LD_DB_INTO_WZH, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, JP_WZ, FETCH }, // CALL NZ,nn
-	{ NOP, PUSH, WRITEB, WRITE, PUSH, WRITEC, WRITE, NOP, FETCH }, // PUSH BC
-	{ NOP, READPC, WAIT, ADD_DB_TO_A, FETCH }, // ADD A,n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_0, FETCH }, // RST 0
-	{ NOP, STOPNZ, READSP, WAIT, FILLPCL, READSP, WAIT, FILLPCH, FETCH }, // RET Z
-	{ NOP, READSP, WAIT, FILLPCL, READSP, WAIT, FILLPCH, FETCH }, // RET
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, JPZ, FETCH }, // JP Z,nn
-	{ PREFIX_CB, FETCH_PREFIX }, // CB prefix
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, STOPNZ, LD_DB_INTO_WZH, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, JP_WZ, FETCH }, // CALL Z,nn
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, LD_DB_INTO_WZH, NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, JP_WZ, FETCH }, // CALL nn
-	{ NOP, READPC, WAIT, ADC_DB_TO_A, FETCH }, // ADC A,n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_08, FETCH }, // RST 08
+	{ {.misc = misc_operation::CHECK_NZ }, { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH }, // RET NZ
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP}, FETCH_MISC(WZ_TO_BC) }, // POP BC
+	{ READZ, READW_MISC(CHECK_NZ), {.misc = misc_operation::WZ_TO_PC }, FETCH }, // JP NZ,nn
+	{ READZ, READW, { .misc = misc_operation::WZ_TO_PC }, FETCH }, // JP nn
+	{ READZ, READW_MISC(CHECK_NZ), {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::WZ_TO_PC}, FETCH}, // CALL NZ,nn
+	{ {.idu = idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_B, idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_C }, FETCH }, // PUSH BC
+	{ READZ, FETCH_ALU(ADD_Z_TO_A) }, // ADD A,n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST0_TO_PC}, FETCH }, // RST 0
+	{ {.misc = misc_operation::CHECK_Z }, { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH }, // RET Z
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH }, // RET
+	{ READZ, READW_MISC(CHECK_Z), {.misc = misc_operation::WZ_TO_PC }, FETCH }, // JP Z,nn
+	{ FETCH_MISC(CB) }, // CB prefix
+	{ READZ, READW_MISC(CHECK_Z), {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::WZ_TO_PC}, FETCH }, // CALL Z,nn
+	{ READZ, READW, {.idu = idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::WZ_TO_PC }, FETCH }, // CALL nn
+	{ READZ, FETCH_ALU(ADC_Z_TO_A) }, // ADC A,n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST8_TO_PC}, FETCH }, // RST 08
 
-	// 0xD0 - 0xDF
-	{ NOP, STOPC, READSP, WAIT, FILLPCL, READSP, WAIT, FILLPCH, FETCH }, // RET NC
-	{ NOP, READSP, WAIT, LD_DB_INTO_E, READSP, WAIT, LD_DB_INTO_D, FETCH }, // POP DE
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, JPNC, FETCH }, // JP NC,nn
-	{ NOVALID },
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, STOPC, LD_DB_INTO_WZH, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, JP_WZ, FETCH }, // CALL NC,nn
-	{ NOP, PUSH, WRITED, WRITE, PUSH, WRITEE, WRITE, NOP, FETCH }, // PUSH DE
-	{ NOP, READPC, WAIT, SUB_DB_TO_A, FETCH }, // SUB n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_10, FETCH }, // RST 10
-	{ NOP, STOPNC, READSP, WAIT, FILLPCL, READSP, WAIT, FILLPCH, FETCH }, // RET C
-	{ }, // RETI
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, JPC, FETCH }, // JP C,nn
-	{ NOVALID },
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, READPC, WAIT, STOPNC, LD_DB_INTO_WZH, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, JP_WZ, FETCH }, // CALL C,nn
-	{ NOVALID },
-	{ NOP, READPC, WAIT, SBC_DB_TO_A, FETCH }, // SBC n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_18, FETCH }, // RST 18
+	{ {.misc = misc_operation::CHECK_NC }, { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH }, // RET NC
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP}, FETCH_MISC(WZ_TO_DE) }, // POP DE
+	{ READZ, READW_MISC(CHECK_NC), {.misc = misc_operation::WZ_TO_PC }, FETCH }, // JP NC,nn
+	{ },
+	{ READZ, READW_MISC(CHECK_NC), {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::WZ_TO_PC}, FETCH }, // CALL NC,nn
+	{ {.idu = idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_D, idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_E }, FETCH }, // PUSH DE
+	{ READZ, FETCH_ALU(SUB_Z_TO_A) }, // SUB n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST10_TO_PC}, FETCH }, // RST 10
+	{ {.misc = misc_operation::CHECK_C }, { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH }, // RET C
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH_MISC(EI) }, // RETI
+	{ READZ, READW_MISC(CHECK_C), {.misc = misc_operation::WZ_TO_PC }, FETCH }, // JP C,nn
+	{ },
+	{ READZ, READW_MISC(CHECK_C), {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::WZ_TO_PC}, FETCH }, // CALL C,nn
+	{ },
+	{ READZ, FETCH_ALU(SBC_Z_TO_A) }, // SBC n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST18_TO_PC}, FETCH }, // RST 18
 
-	// 0xE0 - 0xEF
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, LD_FF_INTO_WZH, WRITE_A, WRITE, NOP, NOP, FETCH }, // LDH (n),A
-	{ NOP, READSP, WAIT, LD_DB_INTO_L, READSP, WAIT, LD_DB_INTO_H, FETCH }, // POP HL
-	{ }, // LD (C),A
-	{ NOVALID },
-	{ NOVALID },
-	{ NOP, PUSH, WRITEH, WRITE, PUSH, WRITEL, WRITE, NOP, FETCH }, // PUSH HL
-	{ NOP, READPC, WAIT, AND_DB, FETCH }, // AND n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_20, FETCH }, // RST 20
-	{ }, // ADD SP,n
-	{ JPHL, FETCH }, // JP (HL)
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, NOP, READPC, WAIT, LD_DB_INTO_WZH, NOP, WRITE_A, WRITE, NOP, NOP, FETCH }, // LD (nn),A
-	{ NOVALID },
-	{ NOVALID },
-	{ NOVALID },
-	{ NOP, READPC, WAIT, XOR_DB, FETCH }, // XOR n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_28, FETCH }, // RST 28
+	{ READZ, { addressbus_operation::PUSH_Z, databus_operation::PUSH_A }, FETCH }, // LDH (n),A
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP}, FETCH_MISC(WZ_TO_HL) }, // POP HL
+	{ {addressbus_operation::PUSH_C, databus_operation::PUSH_A}, FETCH }, // LD (C),A
+	{ },
+	{ },
+	{ {.idu = idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_H, idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_L }, FETCH }, // PUSH HL
+	{ READZ, FETCH_ALU(AND_Z) }, // AND n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST20_TO_PC}, FETCH }, // RST 20
+	{ READZ, {.idu=idu_operation::ADD_Z_TO_SP }, {.misc=misc_operation::WZ_TO_SP}, FETCH }, // ADD SP,n
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_IR, idu_operation::HL_1_TO_PC} }, // JP (HL)
+	{ READZ, READW, { addressbus_operation::PUSH_WZ, databus_operation::PUSH_A }, FETCH }, // LD (nn),A
+	{ },
+	{ },
+	{ },
+	{ READZ, FETCH_ALU(XOR_Z) }, // XOR n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST28_TO_PC}, FETCH }, // RST 28
 
-	// 0xF0 - 0xFF
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, LD_FF_INTO_WZH, READ, WAIT, LD_DB_INTO_A, FETCH }, // LDH A,(n)
-	{ NOP, READSP, WAIT, LD_DB_INTO_F, READSP, WAIT, LD_DB_INTO_A, FETCH }, // POP AF
-	{ }, // LD A,(C)
-	{ DI, FETCH }, // DI
-	{ NOVALID },
-	{ NOP, PUSH, WRITE_A, WRITE, PUSH, WRITEF, WRITE, NOP, FETCH }, // PUSH AF
-	{ NOP, READPC, WAIT, OR_DB, FETCH }, // OR n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_30, FETCH }, // RST 30
-	{ LD_SP_INTO_WZ, READPC, WAIT, ADD_DB_TO_WZ, LD_WZ_INTO_HL, FETCH }, // LD HL,SP+n
-	{ LD_HL_INTO_WZ, LD_WZ_INTO_SP, NOP, FETCH }, // LD SP,HL
-	{ NOP, READPC, WAIT, LD_DB_INTO_WZL, NOP, READPC, WAIT, LD_DB_INTO_WZH, NOP, READ, WAIT, LD_DB_INTO_A, NOP, FETCH }, // LD A,(nn)
-	{ EI, FETCH }, // EI
-	{ NOVALID },
-	{ NOVALID },
-	{ NOP, READPC, WAIT, CP_DB, FETCH }, // CP n
-	{ NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_38, FETCH }, // RST 38
+	{ READZ, { addressbus_operation::PUSH_Z, databus_operation::POP_Z }, FETCH_ALU(Z_TO_A) }, // LDH A,(n)
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP}, FETCH_MISC(WZ_TO_AF) }, // POP AF
+	{ {addressbus_operation::PUSH_C, databus_operation::POP_Z}, FETCH_ALU(Z_TO_A) }, // LD A,(C)
+	{ FETCH_MISC(DI) }, // DI
+	{ },
+	{ {.idu = idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_A, idu_operation::DEC_SP }, { addressbus_operation::PUSH_SP, databus_operation::PUSH_F }, FETCH }, // PUSH AF
+	{ READZ, FETCH_ALU(OR_Z) }, // OR n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST30_TO_PC}, FETCH }, // RST 30
+	{ READZ, {.idu=idu_operation::ADD_Z_TO_SP}, FETCH_MISC(WZ_TO_HL) }, // LD HL,SP+n
+	{ {.idu=idu_operation::HL_TO_SP}, FETCH }, // LD SP,HL
+	{ READZ, READW, { addressbus_operation::PUSH_WZ, databus_operation::POP_Z }, FETCH_ALU(Z_TO_A) }, // LD A,(nn)
+	{ FETCH_MISC(EI) }, // EI
+	{ },
+	{ },
+	{ READZ, FETCH_ALU(CP_Z) }, // CP n
+	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST38_TO_PC}, FETCH }, // RST 38
 
-	// 0x100 -
-	{ DI, NOP, NOP, NOP, NOP, NOP, NOP, NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, JP_38, FETCH }, // Interrup Mode 1
-	{ DI, READIO, WAIT, LD_DB_INTO_WZL, NOP, LD_I_INTO_WZH, NOP, NOP, PUSH_PCH, WRITE, NOP, PUSH_PCL, WRITE, NOP, NOP, READWR, WAIT, FILLPCL, READWR, WAIT, FILLPCH, FETCH }
-};
+	// CB
+	{ FETCH_ALU(RLC_B) }, // RLC B
+	{ FETCH_ALU(RLC_C) }, // RLC C
+	{ FETCH_ALU(RLC_D) }, // RLC D
+	{ FETCH_ALU(RLC_E) }, // RLC E
+	{ FETCH_ALU(RLC_H) }, // RLC H
+	{ FETCH_ALU(RLC_L) }, // RLC L
+	OP_HL(RLC_Z), // RLC (HL)
+	{ FETCH_ALU(RLC_A) }, // RLC A
+	{ FETCH_ALU(RRC_B) }, // RRC B
+	{ FETCH_ALU(RRC_C) }, // RRC C
+	{ FETCH_ALU(RRC_D) }, // RRC D
+	{ FETCH_ALU(RRC_E) }, // RRC E
+	{ FETCH_ALU(RRC_H) }, // RRC H
+	{ FETCH_ALU(RRC_L) }, // RRC L
+	OP_HL(RRC_Z), // RRC (HL)
+	{ FETCH_ALU(RRC_A) }, // RRC A
 
-const std::vector<sm83::opcode_steps> sm83::opcodes_timing_cb[] =
-{
-	// 0x00 - 0x0F
-	{ RLC_B, FETCH }, // RLC B
-	{ RLC_C, FETCH }, // RLC C
-	{ RLC_D, FETCH }, // RLC D
-	{ RLC_E, FETCH }, // RLC E
-	{ RLC_H, FETCH }, // RLC H
-	{ RLC_L, FETCH }, // RLC L
-	{ LD_HL_INTO_WZ, READ, WAIT, RLC_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // RLC (HL)
-	{ RLC_A, FETCH }, // RLC A
-	{ RRC_B, FETCH }, // RRC B
-	{ RRC_C, FETCH }, // RRC C
-	{ RRC_D, FETCH }, // RRC D
-	{ RRC_E, FETCH }, // RRC E
-	{ RRC_H, FETCH }, // RRC H
-	{ RRC_L, FETCH }, // RRC L
-	{ LD_HL_INTO_WZ, READ, WAIT, RRC_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // RRC (HL)
-	{ RRC_A, FETCH }, // RRC A
+	{ FETCH_ALU(RL_B) }, // RL B
+	{ FETCH_ALU(RL_C) }, // RL C
+	{ FETCH_ALU(RL_D) }, // RL D
+	{ FETCH_ALU(RL_E) }, // RL E
+	{ FETCH_ALU(RL_H) }, // RL H
+	{ FETCH_ALU(RL_L) }, // RL L
+	OP_HL(RL_Z), // RL (HL)
+	{ FETCH_ALU(RL_A) }, // RL A
+	{ FETCH_ALU(RR_B) }, // RR B
+	{ FETCH_ALU(RR_C) }, // RR C
+	{ FETCH_ALU(RR_D) }, // RR D
+	{ FETCH_ALU(RR_E) }, // RR E
+	{ FETCH_ALU(RR_H) }, // RR H
+	{ FETCH_ALU(RR_L) }, // RR L
+	OP_HL(RR_Z), // RR (HL)
+	{ FETCH_ALU(RR_A) }, // RR A
 
-	// 0x10 - 0x1F
-	{ RL_B, FETCH }, // RL B
-	{ RL_C, FETCH }, // RL C
-	{ RL_D, FETCH }, // RL D
-	{ RL_E, FETCH }, // RL E
-	{ RL_H, FETCH }, // RL H
-	{ RL_L, FETCH }, // RL L
-	{ LD_HL_INTO_WZ, READ, WAIT, RL_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // RL (HL)
-	{ RL_A, FETCH }, // RL A
-	{ RR_B, FETCH }, // RR B
-	{ RR_C, FETCH }, // RR C
-	{ RR_D, FETCH }, // RR D
-	{ RR_E, FETCH }, // RR E
-	{ RR_H, FETCH }, // RR H
-	{ RR_L, FETCH }, // RR L
-	{ LD_HL_INTO_WZ, READ, WAIT, RR_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // RR (HL)
-	{ RR_A, FETCH }, // RR A
+	{ FETCH_ALU(SLA_B) }, // SLA B
+	{ FETCH_ALU(SLA_C) }, // SLA C
+	{ FETCH_ALU(SLA_D) }, // SLA D
+	{ FETCH_ALU(SLA_E) }, // SLA E
+	{ FETCH_ALU(SLA_H) }, // SLA H
+	{ FETCH_ALU(SLA_L) }, // SLA L
+	OP_HL(SLA_Z), // SLA (HL)
+	{ FETCH_ALU(SLA_A) }, // SLA A
+	{ FETCH_ALU(SRA_B) }, // SRA B
+	{ FETCH_ALU(SRA_C) }, // SRA C
+	{ FETCH_ALU(SRA_D) }, // SRA D
+	{ FETCH_ALU(SRA_E) }, // SRA E
+	{ FETCH_ALU(SRA_H) }, // SRA H
+	{ FETCH_ALU(SRA_L) }, // SRA L
+	OP_HL(SRA_Z), // SRA (HL)
+	{ FETCH_ALU(SRA_A) }, // SRA A
 
-	// 0x20 - 0x2F
-	{ SLA_B, FETCH }, // SLA B
-	{ SLA_C, FETCH }, // SLA C
-	{ SLA_D, FETCH }, // SLA D
-	{ SLA_E, FETCH }, // SLA E
-	{ SLA_H, FETCH }, // SLA H
-	{ SLA_L, FETCH }, // SLA L
-	{ LD_HL_INTO_WZ, READ, WAIT, SLA_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // SLA (HL)
-	{ SLA_A, FETCH }, // SLA A
-	{ SRA_B, FETCH }, // SRA B
-	{ SRA_C, FETCH }, // SRA C
-	{ SRA_D, FETCH }, // SRA D
-	{ SRA_E, FETCH }, // SRA E
-	{ SRA_H, FETCH }, // SRA H
-	{ SRA_L, FETCH }, // SRA L
-	{ LD_HL_INTO_WZ, READ, WAIT, SRA_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // SRA (HL)
-	{ SRA_A, FETCH }, // SRA A
+	{ FETCH_ALU(SWAP_B) }, // SWAP B
+	{ FETCH_ALU(SWAP_C) }, // SWAP C
+	{ FETCH_ALU(SWAP_D) }, // SWAP D
+	{ FETCH_ALU(SWAP_E) }, // SWAP E
+	{ FETCH_ALU(SWAP_H) }, // SWAP H
+	{ FETCH_ALU(SWAP_L) }, // SWAP L
+	OP_HL(SWAP_Z), // SWAP (HL)
+	{ FETCH_ALU(SWAP_A) }, // SWAP A
+	{ FETCH_ALU(SRL_B) }, // SRL B
+	{ FETCH_ALU(SRL_C) }, // SRL C
+	{ FETCH_ALU(SRL_D) }, // SRL D
+	{ FETCH_ALU(SRL_E) }, // SRL E
+	{ FETCH_ALU(SRL_H) }, // SRL H
+	{ FETCH_ALU(SRL_L) }, // SRL L
+	OP_HL(SRL_Z), // SRL (HL)
+	{ FETCH_ALU(SRL_A) }, // SRL A
 
-	// 0x30 - 0x3F
-	{ SWAP_B, FETCH }, // SWAP B
-	{ SWAP_C, FETCH }, // SWAP C
-	{ SWAP_D, FETCH }, // SWAP D
-	{ SWAP_E, FETCH }, // SWAP E
-	{ SWAP_H, FETCH }, // SWAP H
-	{ SWAP_L, FETCH }, // SWAP L
-	{ LD_HL_INTO_WZ, READ, WAIT, SWAP_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // SWAP (HL)
-	{ SWAP_A, FETCH }, // SWAP A
-	{ SRL_B, FETCH }, // SRL B
-	{ SRL_C, FETCH }, // SRL C
-	{ SRL_D, FETCH }, // SRL D
-	{ SRL_E, FETCH }, // SRL E
-	{ SRL_H, FETCH }, // SRL H
-	{ SRL_L, FETCH }, // SRL L
-	{ LD_HL_INTO_WZ, READ, WAIT, SRL_DB, WRITE_DB, WRITE, NOP, NOP, FETCH }, // SRL (HL)
-	{ SRL_A, FETCH }, // SRL A
+	{ FETCH_ALU(BIT_0_B) }, // BIT 0,B
+	{ FETCH_ALU(BIT_0_C) }, // BIT 0,C
+	{ FETCH_ALU(BIT_0_D) }, // BIT 0,D
+	{ FETCH_ALU(BIT_0_E) }, // BIT 0,E
+	{ FETCH_ALU(BIT_0_H) }, // BIT 0,H
+	{ FETCH_ALU(BIT_0_L) }, // BIT 0,L
+	OP_HL(BIT_0_Z), // BIT 0,(HL)
+	{ FETCH_ALU(BIT_0_A) }, // BIT 0,A
+	{ FETCH_ALU(BIT_1_B) }, // BIT 1,B
+	{ FETCH_ALU(BIT_1_C) }, // BIT 1,C
+	{ FETCH_ALU(BIT_1_D) }, // BIT 1,D
+	{ FETCH_ALU(BIT_1_E) }, // BIT 1,E
+	{ FETCH_ALU(BIT_1_H) }, // BIT 1,H
+	{ FETCH_ALU(BIT_1_L) }, // BIT 1,L
+	OP_HL(BIT_1_Z), // BIT 1,(HL)
+	{ FETCH_ALU(BIT_1_A) }, // BIT 1,A
 
-	// 0x40 - 0x4F
-	{ BIT0_B, FETCH }, // BIT 0,B
-	{ BIT0_C, FETCH }, // BIT 0,C
-	{ BIT0_D, FETCH }, // BIT 0,D
-	{ BIT0_E, FETCH }, // BIT 0,E
-	{ BIT0_H, FETCH }, // BIT 0,L
-	{ BIT0_L, FETCH }, // BIT 0,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT0_DB, FETCH }, // BIT 0,(HL)
-	{ BIT0_A, FETCH }, // BIT 0,A
-	{ BIT1_B, FETCH }, // BIT 1,B
-	{ BIT1_C, FETCH }, // BIT 1,C
-	{ BIT1_D, FETCH }, // BIT 1,D
-	{ BIT1_E, FETCH }, // BIT 1,E
-	{ BIT1_H, FETCH }, // BIT 1,L
-	{ BIT1_L, FETCH }, // BIT 1,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT1_DB, FETCH }, // BIT 1,(HL)
-	{ BIT1_A, FETCH }, // BIT 1,A
+	{ FETCH_ALU(BIT_2_B) }, // BIT 2,B
+	{ FETCH_ALU(BIT_2_C) }, // BIT 2,C
+	{ FETCH_ALU(BIT_2_D) }, // BIT 2,D
+	{ FETCH_ALU(BIT_2_E) }, // BIT 2,E
+	{ FETCH_ALU(BIT_2_H) }, // BIT 2,H
+	{ FETCH_ALU(BIT_2_L) }, // BIT 2,L
+	OP_HL(BIT_2_Z), // BIT 2,(HL)
+	{ FETCH_ALU(BIT_2_A) }, // BIT 2,A
+	{ FETCH_ALU(BIT_3_B) }, // BIT 3,B
+	{ FETCH_ALU(BIT_3_C) }, // BIT 3,C
+	{ FETCH_ALU(BIT_3_D) }, // BIT 3,D
+	{ FETCH_ALU(BIT_3_E) }, // BIT 3,E
+	{ FETCH_ALU(BIT_3_H) }, // BIT 3,H
+	{ FETCH_ALU(BIT_3_L) }, // BIT 3,L
+	OP_HL(BIT_3_Z), // BIT 3,(HL)
+	{ FETCH_ALU(BIT_3_A) }, // BIT 3,A
 
-	// 0x50 - 0x5F
-	{ BIT2_B, FETCH }, // BIT 2,B
-	{ BIT2_C, FETCH }, // BIT 2,C
-	{ BIT2_D, FETCH }, // BIT 2,D
-	{ BIT2_E, FETCH }, // BIT 2,E
-	{ BIT2_H, FETCH }, // BIT 2,L
-	{ BIT2_L, FETCH }, // BIT 2,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT2_DB, FETCH }, // BIT 2,(HL)
-	{ BIT2_A, FETCH }, // BIT 2,A
-	{ BIT3_B, FETCH }, // BIT 3,B
-	{ BIT3_C, FETCH }, // BIT 3,C
-	{ BIT3_D, FETCH }, // BIT 3,D
-	{ BIT3_E, FETCH }, // BIT 3,E
-	{ BIT3_H, FETCH }, // BIT 3,L
-	{ BIT3_L, FETCH }, // BIT 3,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT3_DB, FETCH }, // BIT 3,(HL)
-	{ BIT3_A, FETCH }, // BIT 3,A
+	{ FETCH_ALU(BIT_4_B) }, // BIT 4,B
+	{ FETCH_ALU(BIT_4_C) }, // BIT 4,C
+	{ FETCH_ALU(BIT_4_D) }, // BIT 4,D
+	{ FETCH_ALU(BIT_4_E) }, // BIT 4,E
+	{ FETCH_ALU(BIT_4_H) }, // BIT 4,H
+	{ FETCH_ALU(BIT_4_L) }, // BIT 4,L
+	OP_HL(BIT_4_Z), // BIT 4,(HL)
+	{ FETCH_ALU(BIT_4_A) }, // BIT 4,A
+	{ FETCH_ALU(BIT_5_B) }, // BIT 5,B
+	{ FETCH_ALU(BIT_5_C) }, // BIT 5,C
+	{ FETCH_ALU(BIT_5_D) }, // BIT 5,D
+	{ FETCH_ALU(BIT_5_E) }, // BIT 5,E
+	{ FETCH_ALU(BIT_5_H) }, // BIT 5,H
+	{ FETCH_ALU(BIT_5_L) }, // BIT 5,L
+	OP_HL(BIT_5_Z), // BIT 5,(HL)
+	{ FETCH_ALU(BIT_5_A) }, // BIT 5,A
 
-	// 0x60 - 0x6F
-	{ BIT4_B, FETCH }, // BIT 4,B
-	{ BIT4_C, FETCH }, // BIT 4,C
-	{ BIT4_D, FETCH }, // BIT 4,D
-	{ BIT4_E, FETCH }, // BIT 4,E
-	{ BIT4_H, FETCH }, // BIT 4,L
-	{ BIT4_L, FETCH }, // BIT 4,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT4_DB, FETCH }, // BIT 4,(HL)
-	{ BIT4_A, FETCH }, // BIT 4,A
-	{ BIT5_B, FETCH }, // BIT 5,B
-	{ BIT5_C, FETCH }, // BIT 5,C
-	{ BIT5_D, FETCH }, // BIT 5,D
-	{ BIT5_E, FETCH }, // BIT 5,E
-	{ BIT5_H, FETCH }, // BIT 5,L
-	{ BIT5_L, FETCH }, // BIT 5,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT5_DB, FETCH }, // BIT 5,(HL)
-	{ BIT5_A, FETCH }, // BIT 5,A
+	{ FETCH_ALU(BIT_6_B) }, // BIT 6,B
+	{ FETCH_ALU(BIT_6_C) }, // BIT 6,C
+	{ FETCH_ALU(BIT_6_D) }, // BIT 6,D
+	{ FETCH_ALU(BIT_6_E) }, // BIT 6,E
+	{ FETCH_ALU(BIT_6_H) }, // BIT 6,H
+	{ FETCH_ALU(BIT_6_L) }, // BIT 6,L
+	OP_HL(BIT_6_Z), // BIT 6,(HL)
+	{ FETCH_ALU(BIT_6_A) }, // BIT 6,A
+	{ FETCH_ALU(BIT_7_B) }, // BIT 7,B
+	{ FETCH_ALU(BIT_7_C) }, // BIT 7,C
+	{ FETCH_ALU(BIT_7_D) }, // BIT 7,D
+	{ FETCH_ALU(BIT_7_E) }, // BIT 7,E
+	{ FETCH_ALU(BIT_7_H) }, // BIT 7,H
+	{ FETCH_ALU(BIT_7_L) }, // BIT 7,L
+	OP_HL(BIT_7_Z), // BIT 7,(HL)
+	{ FETCH_ALU(BIT_7_A) }, // BIT 7,A
 
-	// 0x70 - 0x7F
-	{ BIT6_B, FETCH }, // BIT 6,B
-	{ BIT6_C, FETCH }, // BIT 6,C
-	{ BIT6_D, FETCH }, // BIT 6,D
-	{ BIT6_E, FETCH }, // BIT 6,E
-	{ BIT6_H, FETCH }, // BIT 6,L
-	{ BIT6_L, FETCH }, // BIT 6,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT6_DB, FETCH }, // BIT 6,(HL)
-	{ BIT6_A, FETCH }, // BIT 6,A
-	{ BIT7_B, FETCH }, // BIT 7,B
-	{ BIT7_C, FETCH }, // BIT 7,C
-	{ BIT7_D, FETCH }, // BIT 7,D
-	{ BIT7_E, FETCH }, // BIT 7,E
-	{ BIT7_H, FETCH }, // BIT 7,L
-	{ BIT7_L, FETCH }, // BIT 7,H
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, BIT7_DB, FETCH }, // BIT 7,(HL)
-	{ BIT7_A, FETCH }, // BIT 7,A
+	{ FETCH_ALU(RES_0_B) }, // RES 0,B
+	{ FETCH_ALU(RES_0_C) }, // RES 0,C
+	{ FETCH_ALU(RES_0_D) }, // RES 0,D
+	{ FETCH_ALU(RES_0_E) }, // RES 0,E
+	{ FETCH_ALU(RES_0_H) }, // RES 0,H
+	{ FETCH_ALU(RES_0_L) }, // RES 0,L
+	OP_HL(RES_0_Z), // RES 0,(HL)
+	{ FETCH_ALU(RES_0_A) }, // RES 0,A
+	{ FETCH_ALU(RES_1_B) }, // RES 1,B
+	{ FETCH_ALU(RES_1_C) }, // RES 1,C
+	{ FETCH_ALU(RES_1_D) }, // RES 1,D
+	{ FETCH_ALU(RES_1_E) }, // RES 1,E
+	{ FETCH_ALU(RES_1_H) }, // RES 1,H
+	{ FETCH_ALU(RES_1_L) }, // RES 1,L
+	OP_HL(RES_1_Z), // RES 1,(HL)
+	{ FETCH_ALU(RES_1_A) }, // RES 1,A
 
-	// 0x80 - 0x8F
-	{ RES0_B, FETCH }, // RES 0,B
-	{ RES0_C, FETCH }, // RES 0,C
-	{ RES0_D, FETCH }, // RES 0,D
-	{ RES0_E, FETCH }, // RES 0,E
-	{ RES0_H, FETCH }, // RES 0,H
-	{ RES0_L, FETCH }, // RES 0,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES0_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 0,(HL)
-	{ RES0_A, FETCH }, // RES 0,A
-	{ RES1_B, FETCH }, // RES 1,B
-	{ RES1_C, FETCH }, // RES 1,C
-	{ RES1_D, FETCH }, // RES 1,D
-	{ RES1_E, FETCH }, // RES 1,E
-	{ RES1_H, FETCH }, // RES 1,H
-	{ RES1_L, FETCH }, // RES 1,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES1_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 1,(HL)
-	{ RES1_A, FETCH }, // RES 1,A
+	{ FETCH_ALU(RES_2_B) }, // RES 2,B
+	{ FETCH_ALU(RES_2_C) }, // RES 2,C
+	{ FETCH_ALU(RES_2_D) }, // RES 2,D
+	{ FETCH_ALU(RES_2_E) }, // RES 2,E
+	{ FETCH_ALU(RES_2_H) }, // RES 2,H
+	{ FETCH_ALU(RES_2_L) }, // RES 2,L
+	OP_HL(RES_2_Z), // RES 2,(HL)
+	{ FETCH_ALU(RES_2_A) }, // RES 2,A
+	{ FETCH_ALU(RES_3_B) }, // RES 3,B
+	{ FETCH_ALU(RES_3_C) }, // RES 3,C
+	{ FETCH_ALU(RES_3_D) }, // RES 3,D
+	{ FETCH_ALU(RES_3_E) }, // RES 3,E
+	{ FETCH_ALU(RES_3_H) }, // RES 3,H
+	{ FETCH_ALU(RES_3_L) }, // RES 3,L
+	OP_HL(RES_3_Z), // RES 3,(HL)
+	{ FETCH_ALU(RES_3_A) }, // RES 3,A
 
-	// 0x90 - 0x9F
-	{ RES2_B, FETCH }, // RES 2,B
-	{ RES2_C, FETCH }, // RES 2,C
-	{ RES2_D, FETCH }, // RES 2,D
-	{ RES2_E, FETCH }, // RES 2,E
-	{ RES2_H, FETCH }, // RES 2,H
-	{ RES2_L, FETCH }, // RES 2,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES2_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 2,(HL)
-	{ RES2_A, FETCH }, // RES 2,A
-	{ RES3_B, FETCH }, // RES 3,B
-	{ RES3_C, FETCH }, // RES 3,C
-	{ RES3_D, FETCH }, // RES 3,D
-	{ RES3_E, FETCH }, // RES 3,E
-	{ RES3_H, FETCH }, // RES 3,H
-	{ RES3_L, FETCH }, // RES 3,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES3_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 3,(HL)
-	{ RES3_A, FETCH }, // RES 3,A
+	{ FETCH_ALU(RES_4_B) }, // RES 4,B
+	{ FETCH_ALU(RES_4_C) }, // RES 4,C
+	{ FETCH_ALU(RES_4_D) }, // RES 4,D
+	{ FETCH_ALU(RES_4_E) }, // RES 4,E
+	{ FETCH_ALU(RES_4_H) }, // RES 4,H
+	{ FETCH_ALU(RES_4_L) }, // RES 4,L
+	OP_HL(RES_4_Z), // RES 4,(HL)
+	{ FETCH_ALU(RES_4_A) }, // RES 4,A
+	{ FETCH_ALU(RES_5_B) }, // RES 5,B
+	{ FETCH_ALU(RES_5_C) }, // RES 5,C
+	{ FETCH_ALU(RES_5_D) }, // RES 5,D
+	{ FETCH_ALU(RES_5_E) }, // RES 5,E
+	{ FETCH_ALU(RES_5_H) }, // RES 5,H
+	{ FETCH_ALU(RES_5_L) }, // RES 5,L
+	OP_HL(RES_5_Z), // RES 5,(HL)
+	{ FETCH_ALU(RES_5_A) }, // RES 5,A
 
-	// 0xA0 - 0xAF
-	{ RES4_B, FETCH }, // RES 4,B
-	{ RES4_C, FETCH }, // RES 4,C
-	{ RES4_D, FETCH }, // RES 4,D
-	{ RES4_E, FETCH }, // RES 4,E
-	{ RES4_H, FETCH }, // RES 4,H
-	{ RES4_L, FETCH }, // RES 4,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES4_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 4,(HL)
-	{ RES4_A, FETCH }, // RES 4,A
-	{ RES5_B, FETCH }, // RES 5,B
-	{ RES5_C, FETCH }, // RES 5,C
-	{ RES5_D, FETCH }, // RES 5,D
-	{ RES5_E, FETCH }, // RES 5,E
-	{ RES5_H, FETCH }, // RES 5,H
-	{ RES5_L, FETCH }, // RES 5,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES5_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 5,(HL)
-	{ RES5_A, FETCH }, // RES 5,A
+	{ FETCH_ALU(RES_6_B) }, // RES 6,B
+	{ FETCH_ALU(RES_6_C) }, // RES 6,C
+	{ FETCH_ALU(RES_6_D) }, // RES 6,D
+	{ FETCH_ALU(RES_6_E) }, // RES 6,E
+	{ FETCH_ALU(RES_6_H) }, // RES 6,H
+	{ FETCH_ALU(RES_6_L) }, // RES 6,L
+	OP_HL(RES_6_Z), // RES 6,(HL)
+	{ FETCH_ALU(RES_6_A) }, // RES 6,A
+	{ FETCH_ALU(RES_7_B) }, // RES 7,B
+	{ FETCH_ALU(RES_7_C) }, // RES 7,C
+	{ FETCH_ALU(RES_7_D) }, // RES 7,D
+	{ FETCH_ALU(RES_7_E) }, // RES 7,E
+	{ FETCH_ALU(RES_7_H) }, // RES 7,H
+	{ FETCH_ALU(RES_7_L) }, // RES 7,L
+	OP_HL(RES_7_Z), // RES 7,(HL)
+	{ FETCH_ALU(RES_7_A) }, // RES 7,A
 
-	// 0xB0 - 0xBF
-	{ RES6_B, FETCH }, // RES 6,B
-	{ RES6_C, FETCH }, // RES 6,C
-	{ RES6_D, FETCH }, // RES 6,D
-	{ RES6_E, FETCH }, // RES 6,E
-	{ RES6_H, FETCH }, // RES 6,H
-	{ RES6_L, FETCH }, // RES 6,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES6_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 6,(HL)
-	{ RES6_A, FETCH }, // RES 6,A
-	{ RES7_B, FETCH }, // RES 7,B
-	{ RES7_C, FETCH }, // RES 7,C
-	{ RES7_D, FETCH }, // RES 7,D
-	{ RES7_E, FETCH }, // RES 7,E
-	{ RES7_H, FETCH }, // RES 7,H
-	{ RES7_L, FETCH }, // RES 7,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, RES7_DB, WRITE_DB, WRITE, NOP, FETCH }, // RES 7,(HL)
-	{ RES7_A, FETCH }, // RES 7,A
+	{ FETCH_ALU(SET_0_B) }, // SET 0,B
+	{ FETCH_ALU(SET_0_C) }, // SET 0,C
+	{ FETCH_ALU(SET_0_D) }, // SET 0,D
+	{ FETCH_ALU(SET_0_E) }, // SET 0,E
+	{ FETCH_ALU(SET_0_H) }, // SET 0,H
+	{ FETCH_ALU(SET_0_L) }, // SET 0,L
+	OP_HL(SET_0_Z), // SET 0,(HL)
+	{ FETCH_ALU(SET_0_A) }, // SET 0,A
+	{ FETCH_ALU(SET_1_B) }, // SET 1,B
+	{ FETCH_ALU(SET_1_C) }, // SET 1,C
+	{ FETCH_ALU(SET_1_D) }, // SET 1,D
+	{ FETCH_ALU(SET_1_E) }, // SET 1,E
+	{ FETCH_ALU(SET_1_H) }, // SET 1,H
+	{ FETCH_ALU(SET_1_L) }, // SET 1,L
+	OP_HL(SET_1_Z), // SET 1,(HL)
+	{ FETCH_ALU(SET_1_A) }, // SET 1,A
 
-	// 0xC0 - 0xCF
-	{ SET0_B, FETCH }, // SET 0,B
-	{ SET0_C, FETCH }, // SET 0,C
-	{ SET0_D, FETCH }, // SET 0,D
-	{ SET0_E, FETCH }, // SET 0,E
-	{ SET0_H, FETCH }, // SET 0,H
-	{ SET0_L, FETCH }, // SET 0,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET0_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 0,(HL)
-	{ SET0_A, FETCH }, // SET 0,A
-	{ SET1_B, FETCH }, // SET 1,B
-	{ SET1_C, FETCH }, // SET 1,C
-	{ SET1_D, FETCH }, // SET 1,D
-	{ SET1_E, FETCH }, // SET 1,E
-	{ SET1_H, FETCH }, // SET 1,H
-	{ SET1_L, FETCH }, // SET 1,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET1_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 1,(HL)
-	{ SET1_A, FETCH }, // SET 1,A
+	{ FETCH_ALU(SET_2_B) }, // SET 2,B
+	{ FETCH_ALU(SET_2_C) }, // SET 2,C
+	{ FETCH_ALU(SET_2_D) }, // SET 2,D
+	{ FETCH_ALU(SET_2_E) }, // SET 2,E
+	{ FETCH_ALU(SET_2_H) }, // SET 2,H
+	{ FETCH_ALU(SET_2_L) }, // SET 2,L
+	OP_HL(SET_2_Z), // SET 2,(HL)
+	{ FETCH_ALU(SET_2_A) }, // SET 2,A
+	{ FETCH_ALU(SET_3_B) }, // SET 3,B
+	{ FETCH_ALU(SET_3_C) }, // SET 3,C
+	{ FETCH_ALU(SET_3_D) }, // SET 3,D
+	{ FETCH_ALU(SET_3_E) }, // SET 3,E
+	{ FETCH_ALU(SET_3_H) }, // SET 3,H
+	{ FETCH_ALU(SET_3_L) }, // SET 3,L
+	OP_HL(SET_3_Z), // SET 3,(HL)
+	{ FETCH_ALU(SET_3_A) }, // SET 3,A
 
-	// 0xD0 - 0xDF
-	{ SET2_B, FETCH }, // SET 2,B
-	{ SET2_C, FETCH }, // SET 2,C
-	{ SET2_D, FETCH }, // SET 2,D
-	{ SET2_E, FETCH }, // SET 2,E
-	{ SET2_H, FETCH }, // SET 2,H
-	{ SET2_L, FETCH }, // SET 2,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET2_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 2,(HL)
-	{ SET2_A, FETCH }, // SET 2,A
-	{ SET3_B, FETCH }, // SET 3,B
-	{ SET3_C, FETCH }, // SET 3,C
-	{ SET3_D, FETCH }, // SET 3,D
-	{ SET3_E, FETCH }, // SET 3,E
-	{ SET3_H, FETCH }, // SET 3,H
-	{ SET3_L, FETCH }, // SET 3,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET3_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 3,(HL)
-	{ SET3_A, FETCH }, // SET 3,A
+	{ FETCH_ALU(SET_4_B) }, // SET 4,B
+	{ FETCH_ALU(SET_4_C) }, // SET 4,C
+	{ FETCH_ALU(SET_4_D) }, // SET 4,D
+	{ FETCH_ALU(SET_4_E) }, // SET 4,E
+	{ FETCH_ALU(SET_4_H) }, // SET 4,H
+	{ FETCH_ALU(SET_4_L) }, // SET 4,L
+	OP_HL(SET_4_Z), // SET 4,(HL)
+	{ FETCH_ALU(SET_4_A) }, // SET 4,A
+	{ FETCH_ALU(SET_5_B) }, // SET 5,B
+	{ FETCH_ALU(SET_5_C) }, // SET 5,C
+	{ FETCH_ALU(SET_5_D) }, // SET 5,D
+	{ FETCH_ALU(SET_5_E) }, // SET 5,E
+	{ FETCH_ALU(SET_5_H) }, // SET 5,H
+	{ FETCH_ALU(SET_5_L) }, // SET 5,L
+	OP_HL(SET_5_Z), // SET 5,(HL)
+	{ FETCH_ALU(SET_5_A) }, // SET 5,A
 
-	// 0xE0 - 0xEF
-	{ SET4_B, FETCH }, // SET 4,B
-	{ SET4_C, FETCH }, // SET 4,C
-	{ SET4_D, FETCH }, // SET 4,D
-	{ SET4_E, FETCH }, // SET 4,E
-	{ SET4_H, FETCH }, // SET 4,H
-	{ SET4_L, FETCH }, // SET 4,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET4_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 4,(HL)
-	{ SET4_A, FETCH }, // SET 4,A
-	{ SET5_B, FETCH }, // SET 5,B
-	{ SET5_C, FETCH }, // SET 5,C
-	{ SET5_D, FETCH }, // SET 5,D
-	{ SET5_E, FETCH }, // SET 5,E
-	{ SET5_H, FETCH }, // SET 5,H
-	{ SET5_L, FETCH }, // SET 5,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET5_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 5,(HL)
-	{ SET5_A, FETCH }, // SET 5,A
-
-	// 0xF0 - 0xFF
-	{ SET6_B, FETCH }, // SET 6,B
-	{ SET6_C, FETCH }, // SET 6,C
-	{ SET6_D, FETCH }, // SET 6,D
-	{ SET6_E, FETCH }, // SET 6,E
-	{ SET6_H, FETCH }, // SET 6,H
-	{ SET6_L, FETCH }, // SET 6,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET6_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 6,(HL)
-	{ SET6_A, FETCH }, // SET 6,A
-	{ SET7_B, FETCH }, // SET 7,B
-	{ SET7_C, FETCH }, // SET 7,C
-	{ SET7_D, FETCH }, // SET 7,D
-	{ SET7_E, FETCH }, // SET 7,E
-	{ SET7_H, FETCH }, // SET 7,H
-	{ SET7_L, FETCH }, // SET 7,L
-	{ LD_HL_INTO_WZ, READ, WAIT, NOP, SET7_DB, WRITE_DB, WRITE, NOP, FETCH }, // SET 7,(HL)
-	{ SET7_A, FETCH }, // SET 7,A
+	{ FETCH_ALU(SET_6_B) }, // SET 6,B
+	{ FETCH_ALU(SET_6_C) }, // SET 6,C
+	{ FETCH_ALU(SET_6_D) }, // SET 6,D
+	{ FETCH_ALU(SET_6_E) }, // SET 6,E
+	{ FETCH_ALU(SET_6_H) }, // SET 6,H
+	{ FETCH_ALU(SET_6_L) }, // SET 6,L
+	OP_HL(SET_6_Z), // SET 6,(HL)
+	{ FETCH_ALU(SET_6_A) }, // SET 6,A
+	{ FETCH_ALU(SET_7_B) }, // SET 7,B
+	{ FETCH_ALU(SET_7_C) }, // SET 7,C
+	{ FETCH_ALU(SET_7_D) }, // SET 7,D
+	{ FETCH_ALU(SET_7_E) }, // SET 7,E
+	{ FETCH_ALU(SET_7_H) }, // SET 7,H
+	{ FETCH_ALU(SET_7_L) }, // SET 7,L
+	OP_HL(SET_7_Z), // SET 7,(HL)
+	{ FETCH_ALU(SET_7_A) }, // SET 7,A
 };

@@ -80,6 +80,7 @@ namespace xprocessors::cpu
 		enum opcode_steps {
 			FETCH = 0,
 			FETCH_PREFIX,
+			FETCHWZL,
 			FETCHWAIT,
 			DECODE,
 			WAIT,
@@ -93,6 +94,7 @@ namespace xprocessors::cpu
 			NOP,
 			DI,
 			EI,
+			IM0,
 			IM1,
 			IM2,
 
@@ -843,6 +845,7 @@ namespace xprocessors::cpu
 		void setMemoryAccessor(std::function<uint8_t(const uint16_t)>);
 
 		[[nodiscard]] bool isrunning();
+		[[nodiscard]] bool isfetch() { return current_step == FETCH; }
 
 		void pause() { _running = false; }
 		void run() { _step = false; _running = true; }

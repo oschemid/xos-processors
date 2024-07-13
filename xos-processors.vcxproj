@@ -142,9 +142,11 @@
   <ItemGroup>
     <ClCompile Include="src\cpu\cpu.cpp" />
     <ClCompile Include="src\cpu\sm83\sm83.cpp" />
+    <ClCompile Include="src\cpu\sm83\sm83alu.cpp" />
     <ClCompile Include="src\cpu\sm83\sm83opcodes.cpp" />
     <ClCompile Include="src\cpu\sm83\sm83debugging.cpp" />
     <ClCompile Include="src\cpu\sm83\sm83debuggingopcodes.cpp" />
+    <ClCompile Include="src\cpu\z80\z80opcodes_cb.cpp" />
     <ClCompile Include="src\cpu\z80family\i8080oldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\lr35902oldsolution.cpp" />
     <ClCompile Include="src\cpu\z80family\z80oldsolution.cpp" />
@@ -161,8 +163,9 @@
     <ClCompile Include="src\cpu\i8080\i8080debugging.cpp" />
     <ClCompile Include="src\cpu\i8080\i8080debuggingopcodes.cpp" />
     <ClCompile Include="src\cpu\i8080\i8080opcodes.cpp" />
+    <ClCompile Include="tests\cpu_tests.cpp" />
     <ClCompile Include="tests\i8080_tests.cpp" />
-    <ClCompile Include="tests\sm83ng_tests.cpp" />
+    <ClCompile Include="tests\sm83_tests.cpp" />
     <ClCompile Include="tests\z80_tests.cpp" />
     <ClCompile Include="xos-processors.cpp" />
   </ItemGroup>
@@ -182,7 +185,6 @@
     <ClInclude Include="src\cpu\z80family\opcodes_cb.h" />
     <ClInclude Include="src\cpu\z80family\states.h" />
     <ClInclude Include="tests\cpu_tests.h" />
-    <ClInclude Include="tests\data\z80\perfs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

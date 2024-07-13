@@ -36,6 +36,11 @@ void Z80::tick()
 			hli_idx = NORMAL;
 			fetch();
 			break;
+		case FETCHWZL:
+			_opcode = z;
+			current_steps = &(opcodes_timing[_opcode]);
+			current_steps_idx = 0;
+			break;
 		case FETCH_PREFIX:
 			fetch();
 			break;
@@ -68,6 +73,9 @@ void Z80::tick()
 			throw "ERROR";
 			break;
 		case NOP:
+			break;
+		case IM0:
+			im = interrupt_mode::mode_0;
 			break;
 		case IM1:
 			im = interrupt_mode::mode_1;
@@ -1990,6 +1998,9 @@ void Z80::tick()
 				halted = false;
 				switch (im)
 				{
+				case interrupt_mode::mode_0:
+					current_steps = &(opcodes_timing[0x102]);
+					break;
 				case interrupt_mode::mode_1:
 					current_steps = &(opcodes_timing[0x100]);
 					break;
