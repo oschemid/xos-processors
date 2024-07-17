@@ -57,7 +57,7 @@ void sm83::interrupt_step1()
 }
 void sm83::tick()
 {
-	if (_tstep == 0)
+	if ((_tstep == 0) && (_tcycle == 0))
 	{
 		if (_ime)
 		{
@@ -74,13 +74,14 @@ void sm83::tick()
 				pc--;
 				break;
 			case 3:
+				sp--;
 				addressbus = sp;
 				databus = pch;
 				pins |= PIN_WR;
-				sp--;
 				_ime++;
 				break;
 			case 4:
+				sp--;
 				addressbus = sp;
 				databus = pcl;
 				pins |= PIN_WR;
