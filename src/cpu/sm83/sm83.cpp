@@ -72,6 +72,8 @@ void sm83::tick()
 				pins &= ~PIN_WR;
 				_ime++;
 				pc--;
+				if (ir > 255)
+					pc--;
 				break;
 			case 3:
 				sp--;

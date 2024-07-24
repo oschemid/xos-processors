@@ -486,7 +486,7 @@ namespace xprocessors::cpu
 		case 0xd8:
 			return "RET C";
 		case 0xd9:
-			return "EXX";
+			return "RETI";
 		case 0xda:
 			disasm << "JP C," << std::hex << getNN(_memoryfn, address);
 			return disasm.str();
