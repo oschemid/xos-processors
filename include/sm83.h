@@ -9,13 +9,8 @@ namespace xprocessors::cpu
 	{
 	public:
 		static const uint16_t PIN_M1 = 1;
-		//static const uint16_t PIN_MREQ = 2;
-		//static const uint16_t PIN_IORQ = 4;
 		static const uint16_t PIN_RD = 8;
 		static const uint16_t PIN_WR = 16;
-		//static const uint16_t PIN_HALT = 32;
-		//static const uint16_t PIN_RFSH = 64;
-		//static const uint16_t PIN_INT = 128;
 
 		enum flags
 		{
@@ -51,6 +46,7 @@ namespace xprocessors::cpu
 
 		union { struct { register8_t z; register8_t w; }; register16_t wz; };
 		uint8_t _ime{ 0 };
+		bool _imenext{ false };
 		bool _halted{ false };
 		uint8_t _ie{ 0 };
 		uint8_t _if{ 0 };
@@ -536,6 +532,7 @@ namespace xprocessors::cpu
 			CB,
 			DI,
 			EI,
+			RETI,
 			HALT,
 			STOP,
 

@@ -76,20 +76,46 @@ void sm83::tick()
 					pc--;
 				break;
 			case 3:
+				_ime++;
+				break;
+			case 4:
+				_ime++;
+				break;
+			case 5:
 				sp--;
 				addressbus = sp;
+				_ime++;
+				break;
+			case 6:
 				databus = pch;
 				pins |= PIN_WR;
 				_ime++;
 				break;
-			case 4:
+			case 7:
+				pins &= ~PIN_WR;
+				_ime++;
+				break;
+			case 8:
+				_ime++;
+				break;
+			case 9:
 				sp--;
 				addressbus = sp;
+				_ime++;
+				break;
+			case 10:
 				databus = pcl;
 				pins |= PIN_WR;
 				_ime++;
 				break;
-			case 5:
+			case 11:
+				pins &= ~PIN_WR;
+				_ime++;
+				break;
+			case 12:
+				_ime++;
+				break;
+			case 13:
 				pins &= ~PIN_WR;
 				ir = 0;
 				switch (_interrupt_in_process)
@@ -112,6 +138,15 @@ void sm83::tick()
 				default:
 					throw "Erreur";
 				}
+				_ime++;
+				break;
+			case 14:
+				_ime++;
+				break;
+			case 15:
+				_ime++;
+				break;
+			case 16:
 				_ime = 0;
 				break;
 			}
@@ -120,6 +155,11 @@ void sm83::tick()
 		}
 		else
 		{
+			if (_imenext)
+			{
+				_ime = 1;
+				_imenext = false;
+			}
 			if ((_halted) && (_if & _ie))
 				_halted = false;
 		}
@@ -465,6 +505,10 @@ void sm83::process(const misc_operation operation)
 			_ime = 0;
 			break;
 		case misc_operation::EI:
+			_imenext = true;
+			break;
+		case misc_operation::RETI:
+			_imenext = false;
 			_ime = 1;
 			break;
 		case misc_operation::HALT:

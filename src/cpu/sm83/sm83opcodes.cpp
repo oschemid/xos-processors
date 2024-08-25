@@ -242,7 +242,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ READZ, FETCH_ALU(SUB_Z_TO_A) }, // SUB n
 	{ {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::RST10_TO_PC}, FETCH }, // RST 10
 	{ {.misc = misc_operation::CHECK_C }, { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH }, // RET C
-	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH_MISC(EI) }, // RETI
+	{ { addressbus_operation::PUSH_SP, databus_operation::POP_Z, idu_operation::INC_SP }, { addressbus_operation::PUSH_SP, databus_operation::POP_W, idu_operation::INC_SP }, {.misc = misc_operation::WZ_TO_PC }, FETCH_MISC(RETI) }, // RETI
 	{ READZ, READW_MISC(CHECK_C), {.misc = misc_operation::WZ_TO_PC }, FETCH }, // JP C,nn
 	{ },
 	{ READZ, READW_MISC(CHECK_C), {.idu = idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCH, idu_operation::DEC_SP}, {addressbus_operation::PUSH_SP, databus_operation::PUSH_PCL, idu_operation::NONE, alu_operation::NONE, misc_operation::WZ_TO_PC}, FETCH }, // CALL C,nn
@@ -359,7 +359,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_0_E) }, // BIT 0,E
 	{ FETCH_ALU(BIT_0_H) }, // BIT 0,H
 	{ FETCH_ALU(BIT_0_L) }, // BIT 0,L
-	OP_HL(BIT_0_Z), // BIT 0,(HL)
+    { {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_0_Z}, FETCH }, // BIT 0,(HL)
 	{ FETCH_ALU(BIT_0_A) }, // BIT 0,A
 	{ FETCH_ALU(BIT_1_B) }, // BIT 1,B
 	{ FETCH_ALU(BIT_1_C) }, // BIT 1,C
@@ -367,7 +367,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_1_E) }, // BIT 1,E
 	{ FETCH_ALU(BIT_1_H) }, // BIT 1,H
 	{ FETCH_ALU(BIT_1_L) }, // BIT 1,L
-	OP_HL(BIT_1_Z), // BIT 1,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_1_Z}, FETCH }, // BIT 1,(HL)
 	{ FETCH_ALU(BIT_1_A) }, // BIT 1,A
 
 	{ FETCH_ALU(BIT_2_B) }, // BIT 2,B
@@ -376,7 +376,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_2_E) }, // BIT 2,E
 	{ FETCH_ALU(BIT_2_H) }, // BIT 2,H
 	{ FETCH_ALU(BIT_2_L) }, // BIT 2,L
-	OP_HL(BIT_2_Z), // BIT 2,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_2_Z}, FETCH }, // BIT 2,(HL)
 	{ FETCH_ALU(BIT_2_A) }, // BIT 2,A
 	{ FETCH_ALU(BIT_3_B) }, // BIT 3,B
 	{ FETCH_ALU(BIT_3_C) }, // BIT 3,C
@@ -384,7 +384,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_3_E) }, // BIT 3,E
 	{ FETCH_ALU(BIT_3_H) }, // BIT 3,H
 	{ FETCH_ALU(BIT_3_L) }, // BIT 3,L
-	OP_HL(BIT_3_Z), // BIT 3,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_3_Z}, FETCH }, // BIT 3,(HL)
 	{ FETCH_ALU(BIT_3_A) }, // BIT 3,A
 
 	{ FETCH_ALU(BIT_4_B) }, // BIT 4,B
@@ -393,7 +393,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_4_E) }, // BIT 4,E
 	{ FETCH_ALU(BIT_4_H) }, // BIT 4,H
 	{ FETCH_ALU(BIT_4_L) }, // BIT 4,L
-	OP_HL(BIT_4_Z), // BIT 4,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_4_Z}, FETCH }, // BIT 4,(HL)
 	{ FETCH_ALU(BIT_4_A) }, // BIT 4,A
 	{ FETCH_ALU(BIT_5_B) }, // BIT 5,B
 	{ FETCH_ALU(BIT_5_C) }, // BIT 5,C
@@ -401,7 +401,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_5_E) }, // BIT 5,E
 	{ FETCH_ALU(BIT_5_H) }, // BIT 5,H
 	{ FETCH_ALU(BIT_5_L) }, // BIT 5,L
-	OP_HL(BIT_5_Z), // BIT 5,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_5_Z}, FETCH }, // BIT 5,(HL)
 	{ FETCH_ALU(BIT_5_A) }, // BIT 5,A
 
 	{ FETCH_ALU(BIT_6_B) }, // BIT 6,B
@@ -410,7 +410,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_6_E) }, // BIT 6,E
 	{ FETCH_ALU(BIT_6_H) }, // BIT 6,H
 	{ FETCH_ALU(BIT_6_L) }, // BIT 6,L
-	OP_HL(BIT_6_Z), // BIT 6,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_6_Z}, FETCH }, // BIT 6,(HL)
 	{ FETCH_ALU(BIT_6_A) }, // BIT 6,A
 	{ FETCH_ALU(BIT_7_B) }, // BIT 7,B
 	{ FETCH_ALU(BIT_7_C) }, // BIT 7,C
@@ -418,7 +418,7 @@ const std::vector<sm83::step> sm83::opcodes_steps[] = {
 	{ FETCH_ALU(BIT_7_E) }, // BIT 7,E
 	{ FETCH_ALU(BIT_7_H) }, // BIT 7,H
 	{ FETCH_ALU(BIT_7_L) }, // BIT 7,L
-	OP_HL(BIT_7_Z), // BIT 7,(HL)
+	{ {addressbus_operation::PUSH_HL, databus_operation::POP_Z, idu_operation::NONE, alu_operation::BIT_7_Z}, FETCH }, // BIT 7,(HL)
 	{ FETCH_ALU(BIT_7_A) }, // BIT 7,A
 
 	{ FETCH_ALU(RES_0_B) }, // RES 0,B
